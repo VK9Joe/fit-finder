@@ -1,4 +1,4 @@
-import { ShopifyProduct, ShopifyImage, Collection, SellingPlanGroup, ProductVariant } from './shopify';
+import { ShopifyProduct } from './shopify';
 
 /**
  * Generic function to make GraphQL requests to Shopify Storefront API
@@ -87,17 +87,23 @@ export function mapConnectionToNodes<T>(connection: { edges: Array<{ node: T }> 
 /**
  * Transform a product node from GraphQL to our ShopifyProduct structure
  */
-export function transformProductNode(node: any): ShopifyProduct {
-  const transformedProduct: any = { ...node };
+export function transformProductNode(node: Record<string, unknown>): ShopifyProduct {
+  const transformedProduct: Record<string, unknown> = { ...node };
   
   // Transform connection patterns to simple arrays
-  if (node.images) transformedProduct.images = mapConnectionToNodes(node.images);
-  if (node.media) transformedProduct.media = mapConnectionToNodes(node.media);
-  if (node.collections) transformedProduct.collections = mapConnectionToNodes(node.collections);
+  if (node.images && typeof node.images === 'object' && 'edges' in node.images) {
+    transformedProduct.images = mapConnectionToNodes(node.images as { edges: Array<{ node: unknown }> });
+  }
+  if (node.media && typeof node.media === 'object' && 'edges' in node.media) {
+    transformedProduct.media = mapConnectionToNodes(node.media as { edges: Array<{ node: unknown }> });
+  }
+  if (node.collections && typeof node.collections === 'object' && 'edges' in node.collections) {
+    transformedProduct.collections = mapConnectionToNodes(node.collections as { edges: Array<{ node: unknown }> });
+  }
   
   // Transform nested connection patterns
   if (node.variants) {
-    transformedProduct.variants = node.variants.edges.map(({ node: variant }: any) => {
+    transformedProduct.variants = (node.variants as { edges: Array<{ node: Record<string, unknown> }> }).edges.map(({ node: variant }) => {
       return variant;
     });
   }
@@ -111,9 +117,9 @@ export function transformProductNode(node: any): ShopifyProduct {
   if (!transformedProduct.variants) transformedProduct.variants = [];
   
   // Determine if any variants are out of stock
-  transformedProduct.hasOutOfStockVariants = transformedProduct.variants.some(
-    (v: any) => !v.availableForSale
+  transformedProduct.hasOutOfStockVariants = (transformedProduct.variants as Array<{ availableForSale: boolean }>).some(
+    (v) => !v.availableForSale
   );
   
-  return transformedProduct as ShopifyProduct;
+  return transformedProduct as unknown as ShopifyProduct;
 }

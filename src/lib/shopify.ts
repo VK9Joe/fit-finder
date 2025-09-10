@@ -175,7 +175,7 @@ export async function fetchProducts(
         endCursor: string;
       };
       edges: Array<{
-        node: any;
+        node: Record<string, unknown>;
       }>;
     };
   }
@@ -200,7 +200,7 @@ export async function fetchProductByHandle(handle: string): Promise<ShopifyProdu
   const { PRODUCT_BY_HANDLE_QUERY } = await import('./queries');
 
   interface ProductResponse {
-    productByHandle: any | null;
+    productByHandle: Record<string, unknown> | null;
   }
 
   const data = await shopifyStorefrontRequest<ProductResponse>(PRODUCT_BY_HANDLE_QUERY, { handle });
@@ -224,7 +224,7 @@ export async function searchProducts(
   interface SearchResponse {
     products: {
       edges: Array<{
-        node: any;
+        node: Record<string, unknown>;
       }>;
     };
   }

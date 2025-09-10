@@ -94,7 +94,7 @@ export default function FitFinderForm({ onSubmit, isLoading = false }: FitFinder
                         errors.breed ? 'border-red-300' : 'border-gray-300'
                       } bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors`}
                     >
-                      <option value="" disabled>Select your dog's breed</option>
+                      <option value="" disabled>Select your dog&apos;s breed</option>
                       {dogBreeds.map((breed) => (
                         <option key={breed} value={breed}>
                           {breed}

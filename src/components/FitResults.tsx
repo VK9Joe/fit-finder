@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardTitle } from '@/components/ui/c
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { ShoppingCart, ExternalLink, Star, CheckCircle, AlertCircle } from 'lucide-react';
+import Image from 'next/image';
 
 // Helper function to truncate description text
 function truncateDescription(text: string | undefined, maxLength: number): string {
@@ -157,9 +158,11 @@ export default function FitResults({ results, onStartOver }: FitResultsProps) {
             <div className="relative h-64 bg-white flex items-center justify-center overflow-hidden">
               {result.shopifyProduct?.featuredImage ? (
                 <div className="flex items-center justify-center w-full h-full p-2">
-                  <img 
+                  <Image 
                     src={result.shopifyProduct.featuredImage} 
                     alt={result.shopifyProduct.title || result.pattern.name}
+                    width={300}
+                    height={220}
                     className="max-w-full max-h-full object-contain"
                     style={{ maxHeight: "220px" }}
                   />
