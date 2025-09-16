@@ -1,28 +1,33 @@
 'use client';
 
 import { useState } from 'react';
-import { DogMeasurements } from '@/types';
-import { dogBreeds } from '@/data/realPatterns';
+import { UserInput } from '@/types';
+import { getAvailableBreeds, getTailTypes } from '@/utils/patternFinder';
 
 interface FormErrors {
   [key: string]: string | undefined;
 }
 
 interface FitFinderFormProps {
-  onSubmit: (measurements: DogMeasurements) => void;
+  onSubmit: (measurements: UserInput) => void;
   isLoading?: boolean;
+  initialMeasurements?: UserInput | null;
 }
 
-export default function FitFinderForm({ onSubmit, isLoading = false }: FitFinderFormProps) {
-  const [measurements, setMeasurements] = useState<Partial<DogMeasurements>>({});
+export default function FitFinderForm({ onSubmit, isLoading = false, initialMeasurements = null }: FitFinderFormProps) {
+  const [measurements, setMeasurements] = useState<Partial<UserInput>>(() => {
+    return initialMeasurements || {
+      tailType: 'straight',
+      chondrodystrophic: false
+    };
+  });
   const [errors, setErrors] = useState<FormErrors>({});
 
   const isFormComplete = () => {
     return measurements.breed && 
-           measurements.length && measurements.length > 0 &&
-           measurements.neckMeasurement && measurements.neckMeasurement > 0 &&
-           measurements.chestMeasurement && measurements.chestMeasurement > 0 &&
-           measurements.legLength && 
+           measurements.backLength && measurements.backLength > 0 &&
+           measurements.neckCircumference && measurements.neckCircumference > 0 &&
+           measurements.chestCircumference && measurements.chestCircumference > 0 &&
            measurements.tailType;
   };
 
@@ -32,17 +37,14 @@ export default function FitFinderForm({ onSubmit, isLoading = false }: FitFinder
     if (!measurements.breed) {
       newErrors.breed = "Please select your dog's breed";
     }
-    if (!measurements.length || measurements.length <= 0) {
-      newErrors.length = 'Please enter a valid length measurement';
+    if (!measurements.backLength || measurements.backLength <= 0) {
+      newErrors.backLength = 'Please enter a valid back length measurement';
     }
-    if (!measurements.neckMeasurement || measurements.neckMeasurement <= 0) {
-      newErrors.neckMeasurement = 'Please enter a valid neck measurement';
+    if (!measurements.neckCircumference || measurements.neckCircumference <= 0) {
+      newErrors.neckCircumference = 'Please enter a valid neck measurement';
     }
-    if (!measurements.chestMeasurement || measurements.chestMeasurement <= 0) {
-      newErrors.chestMeasurement = 'Please enter a valid chest measurement';
-    }
-    if (!measurements.legLength) {
-      newErrors.legLength = "Please select your dog's leg length";
+    if (!measurements.chestCircumference || measurements.chestCircumference <= 0) {
+      newErrors.chestCircumference = 'Please enter a valid chest measurement';
     }
     if (!measurements.tailType) {
       newErrors.tailType = "Please select your dog's tail type";
@@ -54,11 +56,11 @@ export default function FitFinderForm({ onSubmit, isLoading = false }: FitFinder
 
   const handleSubmit = () => {
     if (validateForm()) {
-      onSubmit(measurements as DogMeasurements);
+      onSubmit(measurements as UserInput);
     }
   };
 
-  const updateMeasurement = (field: keyof DogMeasurements, value: string | number) => {
+  const updateMeasurement = (field: keyof UserInput, value: string | number | boolean) => {
     setMeasurements(prev => ({
       ...prev,
       [field]: value
@@ -95,9 +97,9 @@ export default function FitFinderForm({ onSubmit, isLoading = false }: FitFinder
                       } bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors`}
                     >
                       <option value="" disabled>Select your dog&apos;s breed</option>
-                      {dogBreeds.map((breed) => (
+                      {getAvailableBreeds().map((breed) => (
                         <option key={breed} value={breed}>
-                          {breed}
+                          {breed.charAt(0).toUpperCase() + breed.slice(1)}
                         </option>
                       ))}
                     </select>
@@ -124,66 +126,66 @@ export default function FitFinderForm({ onSubmit, isLoading = false }: FitFinder
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {/* Length */}
+                {/* Back Length */}
                 <div>
                   <label className="block text-sm font-semibold text-gray-800 mb-3">
-                    Length
+                    Back Length
                   </label>
                   <input
                     type="number"
-                    value={measurements.length || ''}
-                    onChange={(e) => updateMeasurement('length', parseFloat(e.target.value) || 0)}
-                    placeholder="24"
+                    value={measurements.backLength || ''}
+                    onChange={(e) => updateMeasurement('backLength', parseFloat(e.target.value) || 0)}
+                    placeholder="15"
                     className={`w-full h-12 px-4 border rounded-lg text-gray-900 text-base focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors ${
-                      errors.length ? 'border-red-300' : 'border-gray-300'
+                      errors.backLength ? 'border-red-300' : 'border-gray-300'
                     }`}
                     min="1"
-                    step="0.5"
+                    step="1"
                   />
-                  {errors.length && (
-                    <p className="text-red-500 text-sm mt-1">{errors.length}</p>
+                  {errors.backLength && (
+                    <p className="text-red-500 text-sm mt-1">{errors.backLength}</p>
                   )}
                 </div>
 
-                {/* Neck */}
+                {/* Neck Circumference */}
                 <div>
                   <label className="block text-sm font-semibold text-gray-800 mb-3">
-                    Neck
+                    Neck Circumference
                   </label>
                   <input
                     type="number"
-                    value={measurements.neckMeasurement || ''}
-                    onChange={(e) => updateMeasurement('neckMeasurement', parseFloat(e.target.value) || 0)}
-                    placeholder="16"
+                    value={measurements.neckCircumference || ''}
+                    onChange={(e) => updateMeasurement('neckCircumference', parseFloat(e.target.value) || 0)}
+                    placeholder="12.5"
                     className={`w-full h-12 px-4 border rounded-lg text-gray-900 text-base focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors ${
-                      errors.neckMeasurement ? 'border-red-300' : 'border-gray-300'
+                      errors.neckCircumference ? 'border-red-300' : 'border-gray-300'
                     }`}
                     min="1"
-                    step="0.5"
+                    step="0.25"
                   />
-                  {errors.neckMeasurement && (
-                    <p className="text-red-500 text-sm mt-1">{errors.neckMeasurement}</p>
+                  {errors.neckCircumference && (
+                    <p className="text-red-500 text-sm mt-1">{errors.neckCircumference}</p>
                   )}
                 </div>
 
-                {/* Chest */}
+                {/* Chest Circumference */}
                 <div>
                   <label className="block text-sm font-semibold text-gray-800 mb-3">
-                    Chest
+                    Chest Circumference
                   </label>
                   <input
                     type="number"
-                    value={measurements.chestMeasurement || ''}
-                    onChange={(e) => updateMeasurement('chestMeasurement', parseFloat(e.target.value) || 0)}
-                    placeholder="28"
+                    value={measurements.chestCircumference || ''}
+                    onChange={(e) => updateMeasurement('chestCircumference', parseFloat(e.target.value) || 0)}
+                    placeholder="18.75"
                     className={`w-full h-12 px-4 border rounded-lg text-gray-900 text-base focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors ${
-                      errors.chestMeasurement ? 'border-red-300' : 'border-gray-300'
+                      errors.chestCircumference ? 'border-red-300' : 'border-gray-300'
                     }`}
                     min="1"
-                    step="0.5"
+                    step="0.25"
                   />
-                  {errors.chestMeasurement && (
-                    <p className="text-red-500 text-sm mt-1">{errors.chestMeasurement}</p>
+                  {errors.chestCircumference && (
+                    <p className="text-red-500 text-sm mt-1">{errors.chestCircumference}</p>
                   )}
                 </div>
               </div>
@@ -210,34 +212,6 @@ export default function FitFinderForm({ onSubmit, isLoading = false }: FitFinder
               <h2 className="text-2xl font-bold text-gray-900 mb-6">Physical Characteristics</h2>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Leg Length */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-800 mb-3">
-                    Leg Length
-                  </label>
-                  <div className="relative">
-                    <select
-                      value={measurements.legLength || ''}
-                      onChange={(e) => updateMeasurement('legLength', e.target.value as 'short' | 'long')}
-                      className={`block w-full h-12 pl-4 pr-10 py-3 border rounded-lg text-gray-900 text-base ${
-                        errors.legLength ? 'border-red-300' : 'border-gray-300'
-                      } bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors`}
-                    >
-                      <option value="" disabled>Choose leg length</option>
-                      <option value="short">Short</option>
-                      <option value="long">Long</option>
-                    </select>
-                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
-                      <svg className="h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                        <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-                      </svg>
-                    </div>
-                  </div>
-                  {errors.legLength && (
-                    <p className="text-red-500 text-sm mt-1">{errors.legLength}</p>
-                  )}
-                </div>
-
                 {/* Tail Type */}
                 <div>
                   <label className="block text-sm font-semibold text-gray-800 mb-3">
@@ -246,16 +220,17 @@ export default function FitFinderForm({ onSubmit, isLoading = false }: FitFinder
                   <div className="relative">
                     <select
                       value={measurements.tailType || ''}
-                      onChange={(e) => updateMeasurement('tailType', e.target.value as 'straight' | 'curled' | 'sickle' | 'otter')}
+                      onChange={(e) => updateMeasurement('tailType', e.target.value as UserInput['tailType'])}
                       className={`block w-full h-12 pl-4 pr-10 py-3 border rounded-lg text-gray-900 text-base ${
                         errors.tailType ? 'border-red-300' : 'border-gray-300'
                       } bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors`}
                     >
-                      <option value="" disabled>Select tail type</option>
-                      <option value="straight">Straight</option>
-                      <option value="curled">Curled</option>
-                      <option value="sickle">Sickle</option>
-                      <option value="otter">Otter</option>
+                      <option value="" disabled>Choose tail type</option>
+                      {getTailTypes().map((type) => (
+                        <option key={type} value={type}>
+                          {type.charAt(0).toUpperCase() + type.slice(1)}
+                        </option>
+                      ))}
                     </select>
                     <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
                       <svg className="h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
@@ -266,6 +241,25 @@ export default function FitFinderForm({ onSubmit, isLoading = false }: FitFinder
                   {errors.tailType && (
                     <p className="text-red-500 text-sm mt-1">{errors.tailType}</p>
                   )}
+                </div>
+
+                {/* Chondrodystrophic Legs */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-800 mb-3">
+                    Leg Type
+                  </label>
+                  <div className="flex items-center space-x-3 p-4 border border-gray-300 rounded-lg">
+                    <input
+                      type="checkbox"
+                      id="chondrodystrophic"
+                      checked={measurements.chondrodystrophic || false}
+                      onChange={(e) => updateMeasurement('chondrodystrophic', e.target.checked)}
+                      className="h-5 w-5 text-primary focus:ring-primary border-gray-300 rounded"
+                    />
+                    <label htmlFor="chondrodystrophic" className="text-sm text-gray-700">
+                      Very short legs (like Corgi, Basset Hound, Dachshund)
+                    </label>
+                  </div>
                 </div>
               </div>
             </div>

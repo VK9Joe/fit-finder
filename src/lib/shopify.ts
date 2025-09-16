@@ -156,7 +156,7 @@ export interface SellingPlanGroup {
  * Fetch products with all available details using GraphQL Storefront API
  */
 export async function fetchProducts(
-  limit: number = 10,
+  limit: number = 100000000,
   cursor?: string
 ): Promise<{ products: ShopifyProduct[], pageInfo: { hasNextPage: boolean, endCursor: string } }> {
   // Import helpers and queries

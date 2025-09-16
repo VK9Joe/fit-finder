@@ -43,8 +43,8 @@ export function calculateFitScore(
   const estimatedTailSize = length * 0.5; // Rough estimation
   const tailScore = calculateMeasurementScore(
     estimatedTailSize,
-    patternMeasurements.minTailSize,
-    patternMeasurements.maxTailSize
+    patternMeasurements.minTailSize || 0,
+    patternMeasurements.maxTailSize || 100
   );
   totalScore += tailScore * 0.10; // 10% weight
 

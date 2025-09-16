@@ -1,346 +1,465 @@
 'use client';
 
-import { FitResult } from '@/types';
+import { PRODUCT_TYPES, ProductType } from '@/types';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { ShoppingCart, ExternalLink, Star, CheckCircle, AlertCircle } from 'lucide-react';
+import { AlertCircle, ShoppingCart, CheckCircle, Plus } from 'lucide-react';
 import Image from 'next/image';
+import { useState } from 'react';
+import { enhancedAddToCart, extractVariantId, isValidVariantId } from '@/lib/shopify-cart-iframe';
 
 // Helper function to truncate description text
-function truncateDescription(text: string | undefined, maxLength: number): string {
-  if (!text) return '';
-  return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
-}
+// function truncateDescription(text: string | undefined, maxLength: number): string {
+//   if (!text) return '';
+//   return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
+// }
 
 interface FitResultsProps {
-  results: FitResult[];
+  results: {
+    bestFit?: Array<{
+      pattern: {
+        id: string;
+        name: string;
+        description: string;
+        price: number;
+      };
+      finalScore: number;
+      fitLabel: string;
+      neckScore: number;
+      chestScore: number;
+      lengthScore: number;
+      fitNotes: string[];
+      products?: Record<string, Array<{
+        id: string;
+        title: string;
+        handle: string;
+        price: string;
+        currencyCode: string;
+        availableForSale: boolean;
+        featuredImage?: string;
+        variant: {
+          id: string;
+          sku: string;
+          skuInfo: {
+            color: string;
+          };
+        };
+      }>>;
+    }>;
+    goodFit?: Array<{
+      pattern: {
+        id: string;
+        name: string;
+        description: string;
+        price: number;
+      };
+      finalScore: number;
+      fitLabel: string;
+      neckScore: number;
+      chestScore: number;
+      lengthScore: number;
+      fitNotes: string[];
+      products?: Record<string, Array<{
+        id: string;
+        title: string;
+        handle: string;
+        price: string;
+        currencyCode: string;
+        availableForSale: boolean;
+        featuredImage?: string;
+        variant: {
+          id: string;
+          sku: string;
+          skuInfo: {
+            color: string;
+          };
+        };
+      }>>;
+    }>;
+    mightFit?: Array<{
+      pattern: {
+        id: string;
+        name: string;
+        description: string;
+        price: number;
+      };
+      finalScore: number;
+      fitLabel: string;
+      neckScore: number;
+      chestScore: number;
+      lengthScore: number;
+      fitNotes: string[];
+      products?: Record<string, Array<{
+        id: string;
+        title: string;
+        handle: string;
+        price: string;
+        currencyCode: string;
+        availableForSale: boolean;
+        featuredImage?: string;
+        variant: {
+          id: string;
+          sku: string;
+          skuInfo: {
+            color: string;
+          };
+        };
+      }>>;
+    }>;
+  };
   onStartOver: () => void;
 }
 
 export default function FitResults({ results, onStartOver }: FitResultsProps) {
-  const getScoreColor = (score: number) => {
-    if (score >= 90) return 'bg-green-100 text-green-800 border-green-200';
-    if (score >= 75) return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-    return 'bg-orange-100 text-orange-800 border-orange-200';
-  };
+  const [addingToCart, setAddingToCart] = useState<string | null>(null);
 
-  const getScoreIcon = (score: number) => {
-    if (score >= 90) return <CheckCircle className="h-4 w-4" />;
-    if (score >= 75) return <Star className="h-4 w-4" />;
-    return <AlertCircle className="h-4 w-4" />;
-  };
 
-  const handleAddToCart = async (result: FitResult) => {
-    // Check if we have Shopify product data
-    if (result.shopifyProduct) {
-      try {
-        // Build a Shopify cart URL with the first variant
-        const variantId = result.shopifyProduct.variantIds?.[0];
-        if (!variantId) {
-          throw new Error('No product variant available');
-        }
-
-        // Create a checkout URL with product details using Shopify cart API
-        const checkoutUrl = `/cart/add?id=${variantId}&quantity=1`;
-        
-        // Add fit score as line item property if supported by the store
-        const fullUrl = `${checkoutUrl}&properties[Fit Score]=${Math.round(result.score)}%`;
-        
-        // Open in current window for Shopify integration
-        window.location.href = fullUrl;
-      } catch (error) {
-        console.error('Failed to add to cart:', error);
-        // Fallback to product page
-        window.open(result.shopifyProduct.productUrl, '_blank');
+  // Enhanced add to cart functionality for iframe usage in Shopify store
+  const addToCart = async (variantId: string, productTitle: string) => {
+    setAddingToCart(variantId);
+    
+    try {
+      // Validate variant ID format
+      if (!isValidVariantId(variantId)) {
+        throw new Error('Invalid variant ID format');
       }
-    } else {
-      // Fallback to demo behavior for pattern-only results
-      try {
-        // For demo purposes, we'll simulate success and redirect
-        console.log('Adding to cart:', {
-          id: result.pattern.productId,
-          quantity: 1,
-          properties: {
-            'Fit Score': `${Math.round(result.score)}%`,
-            'Pattern Code': result.pattern.patternCode,
-            'Size': result.pattern.size
+      
+      // Extract numeric variant ID if it's a GID
+      const numericVariantId = extractVariantId(variantId);
+      
+      // Use the enhanced cart utility
+      const success = await enhancedAddToCart(numericVariantId, productTitle, 1);
+      
+      if (success) {
+        // Show success feedback
+        console.log(`✅ Successfully added ${productTitle} to cart`);
+        
+        // Optional: Show a subtle success message instead of alert
+        // You can replace this with a toast notification or other UI feedback
+        const successMessage = `✅ ${productTitle} added to cart!`;
+        
+        // Create a temporary notification element
+        if (typeof window !== 'undefined') {
+          const notification = document.createElement('div');
+          notification.textContent = successMessage;
+          notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #28a745;
+            color: white;
+            padding: 12px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            z-index: 10000;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            animation: slideIn 0.3s ease-out;
+          `;
+          
+          // Add animation keyframes
+          if (!document.getElementById('cart-notification-styles')) {
+            const style = document.createElement('style');
+            style.id = 'cart-notification-styles';
+            style.textContent = `
+              @keyframes slideIn {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+              }
+              @keyframes slideOut {
+                from { transform: translateX(0); opacity: 1; }
+                to { transform: translateX(100%); opacity: 0; }
+              }
+            `;
+            document.head.appendChild(style);
           }
-        });
-        
-        // Create a checkout URL with product details
-        const checkoutUrl = `/cart/add?id=${result.pattern.productId}&quantity=1&properties[Fit-Score]=${Math.round(result.score)}%25&properties[Pattern-Code]=${result.pattern.patternCode}`;
-        
-        // Open in current window for Shopify integration
-        window.location.href = checkoutUrl;
-      } catch (error) {
-        console.error('Failed to add to cart:', error);
-        // Fallback to product page
-        window.open(result.pattern.productUrl, '_blank');
+          
+          document.body.appendChild(notification);
+          
+          // Remove notification after 3 seconds
+          setTimeout(() => {
+            notification.style.animation = 'slideOut 0.3s ease-in';
+            setTimeout(() => {
+              if (notification.parentNode) {
+                notification.parentNode.removeChild(notification);
+              }
+            }, 300);
+          }, 3000);
+        }
+      } else {
+        throw new Error('Failed to add product to cart');
       }
+      
+    } catch (error) {
+      console.error('Failed to add to cart:', error);
+      alert(`❌ Sorry, there was an error adding ${productTitle} to your cart. Please try again.`);
+    } finally {
+      setAddingToCart(null);
     }
   };
 
-  const handleViewProduct = (result: FitResult) => {
-    const productUrl = result.shopifyProduct?.productUrl || result.pattern.productUrl;
-    window.open(productUrl, '_blank');
-  };
-
-  if (results.length === 0) {
+  if (!results) {
     return (
-      <Card className="text-center">
-        <CardContent className="pt-12 pb-12">
-          <div className="space-y-6">
-            <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto">
-              <AlertCircle className="w-10 h-10 text-gray-400" />
-            </div>
-            <div>
-              <CardTitle className="text-2xl mb-4">No Perfect Matches Found</CardTitle>
-              <CardDescription className="text-base max-w-md mx-auto">
-                We couldn&apos;t find coats matching your measurements. Try adjusting them or contact us for custom sizing.
-              </CardDescription>
-            </div>
-            <Button onClick={onStartOver} variant="outline" size="lg" className="border-brand-teal text-brand-teal hover:bg-brand-teal hover:text-white">
-              Try Different Measurements
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="text-center py-16">
+        <AlertCircle className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">No Results Found</h2>
+        <p className="text-gray-600 mb-8">We couldn&apos;t find any matching patterns for your dog&apos;s measurements.</p>
+        <Button onClick={onStartOver} className="bg-brand-teal hover:bg-brand-teal-dark text-white">
+          Try Again
+        </Button>
+      </div>
     );
   }
 
-  return (
-    <div className="space-y-8">
-      {/* Results Header */}
-      <Card className="professional-card">
-        <CardContent className="pt-10 pb-10">
-          <div className="text-center space-y-6">
-            <div className="inline-flex items-center gap-2 bg-primary/10 text-primary rounded-full px-6 py-3">
-              <CheckCircle className="h-5 w-5" />
-              <span className="font-bold text-lg">Perfect Matches Found!</span>
-            </div>
-            <CardTitle className="text-4xl font-bold text-gray-900">Your Perfect Fit Recommendations</CardTitle>
-            <CardDescription className="text-xl max-w-3xl mx-auto text-gray-600">
-              We found {results.length} coat{results.length > 1 ? 's' : ''} that match your dog&apos;s measurements. 
-              Each recommendation includes detailed fit analysis and direct purchase options.
-            </CardDescription>
-            <div className="inline-block bg-brand-teal/10 text-brand-teal px-4 py-2 rounded-full font-medium text-sm">
-              Performance Outerwear + Perfect Fit
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+  const getFitLabelColor = (label: string) => {
+    switch (label) {
+      case 'Best Fit': return 'bg-green-100 text-green-800';
+      case 'Good Fit': return 'bg-blue-100 text-blue-800';
+      case 'Might Fit': return 'bg-yellow-100 text-yellow-800';
+      case 'Poor Fit': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
 
-      {/* Results Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-        {results.map((result, index) => (
-          <Card key={result.pattern.id} className="professional-card hover:shadow-xl transition-all duration-300 group relative overflow-hidden">
-            {/* Best Match Badge */}
-            {index === 0 && (
-              <div className="absolute top-4 left-4 z-10">
-                <Badge className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white border-0 shadow-md">
-                  <Star className="w-3 h-3 mr-1" />
-                  BEST MATCH
+  const renderPatternCard = (result: {
+    pattern: {
+      id: string;
+      name: string;
+      description: string;
+      price: number;
+    };
+    finalScore: number;
+    fitLabel: string;
+    neckScore: number;
+    chestScore: number;
+    lengthScore: number;
+    fitNotes: string[];
+    products?: Record<string, Array<{
+      id: string;
+      title: string;
+      handle: string;
+      price: string;
+      currencyCode: string;
+      availableForSale: boolean;
+      featuredImage?: string;
+      variant: {
+        id: string;
+        sku: string;
+        skuInfo: {
+          color: string;
+        };
+      };
+    }>>;
+  }, globalIndex: number) => {
+    // Use the global index directly as ranking (1-based)
+    const ranking = globalIndex + 1;
+
+    return (
+      <div key={result.pattern.id} className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden hover:shadow-xl transition-all duration-300 mt-16">
+        {/* Pattern Header */}
+        <div className="bg-gradient-to-r from-brand-teal/10 to-primary/10 p-4 md:p-6">
+          <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+            <div className="flex-1">
+              <div className="flex flex-wrap items-center gap-2 mb-3">
+                <div className="text-sm font-semibold text-brand-teal bg-white px-3 py-1 rounded-full shadow-sm">#{ranking}</div>
+                <Badge className={`${getFitLabelColor(result.fitLabel)} text-xs font-medium px-3 py-1`}>
+                  {result.fitLabel}
                 </Badge>
               </div>
-            )}
-
-            {/* Fit Score Badge */}
-            <div className="absolute top-4 right-4 z-10">
-              <Badge className={`${getScoreColor(result.score)} border font-semibold`}>
-                {getScoreIcon(result.score)}
-                <span className="ml-1">{Math.round(result.score)}% Fit</span>
-              </Badge>
-            </div>
-
-            {/* Product Image Area */}
-            <div className="relative h-64 bg-white flex items-center justify-center overflow-hidden">
-              {result.shopifyProduct?.featuredImage ? (
-                <div className="flex items-center justify-center w-full h-full p-2">
-                  <Image 
-                    src={result.shopifyProduct.featuredImage} 
-                    alt={result.shopifyProduct.title || result.pattern.name}
-                    width={300}
-                    height={220}
-                    className="max-w-full max-h-full object-contain"
-                    style={{ maxHeight: "220px" }}
-                  />
+              <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-2">{result.pattern.name}</h2>
+              <p className="text-gray-600 mb-4 text-sm leading-relaxed">{result.pattern.description}</p>
+              
+              {/* Score Display - Mobile Responsive */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+                <div className="text-center bg-white/50 rounded-lg p-3">
+                  <div className="text-2xl md:text-3xl font-bold text-brand-teal">{Math.round(result.finalScore * 100)}%</div>
+                  <div className="text-xs text-gray-600 font-medium">Overall Fit</div>
                 </div>
-              ) : (
-                <div className="text-center space-y-2">
-                  <div className="w-16 h-16 bg-white rounded-full shadow-lg flex items-center justify-center mx-auto group-hover:scale-110 transition-transform">
-                    <svg className="w-8 h-8 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
+                <div className="text-center bg-white/50 rounded-lg p-3">
+                  <div className={`text-lg md:text-xl font-bold ${result.neckScore >= 0.95 ? 'text-green-600' : 'text-brand-teal'}`}>
+                    {Math.round(result.neckScore * 100)}%
                   </div>
-                  <div className="text-sm text-gray-600">{result.pattern.category}</div>
+                  <div className="text-xs text-gray-600 font-medium">Neck</div>
                 </div>
-              )}
-            </div>
-
-            <CardContent className="p-6">
-              {/* Product Info */}
-              <div className="space-y-4">
-                <div>
-                  <CardTitle className="text-xl group-hover:text-teal-600 transition-colors">
-                    {result.shopifyProduct?.title || result.pattern.name}
-                  </CardTitle>
-                  <CardDescription className="mt-2">
-                    {truncateDescription(result.shopifyProduct?.description || result.pattern.description, 80)}
-                  </CardDescription>
+                <div className="text-center bg-white/50 rounded-lg p-3">
+                  <div className={`text-lg md:text-xl font-bold ${result.chestScore >= 0.95 ? 'text-green-600' : 'text-brand-teal'}`}>
+                    {Math.round(result.chestScore * 100)}%
+                  </div>
+                  <div className="text-xs text-gray-600 font-medium">Chest</div>
                 </div>
-
-                {/* Product Details */}
-                <div className="flex items-center gap-4 text-sm text-gray-600">
-                  <div className="flex items-center gap-1">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-                    </svg>
-                    <span>{result.pattern.size}</span>
+                <div className="text-center bg-white/50 rounded-lg p-3">
+                  <div className={`text-lg md:text-xl font-bold ${result.lengthScore >= 0.95 ? 'text-green-600' : 'text-brand-teal'}`}>
+                    {Math.round(result.lengthScore * 100)}%
                   </div>
-                  {result.pattern.patternCode && (
-                    <div className="flex items-center gap-1">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                      <span>{result.pattern.patternCode}</span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Key Features */}
-                <div className="space-y-2">
-                  <div className="text-sm font-semibold">Key Features:</div>
-                  <div className="flex flex-wrap gap-1">
-                    {result.pattern.features.slice(0, 3).map((feature, idx) => (
-                      <Badge key={idx} variant="secondary" className="text-xs">
-                        {feature}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-
-                <Separator />
-
-                {/* Fit Notes */}
-                <div className="space-y-3">
-                  <div className="text-sm font-semibold flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-teal-600" />
-                    Fit Analysis
-                  </div>
-                  <div className="space-y-2">
-                    {result.fitNotes.slice(0, 3).map((note, noteIndex) => (
-                      <div key={noteIndex} className="flex items-start gap-2 text-sm">
-                        <div className="w-1.5 h-1.5 bg-teal-500 rounded-full mt-2 flex-shrink-0"></div>
-                        <span className="text-gray-700">{note}</span>
-                      </div>
-                    ))}
-                    {result.fitNotes.length > 3 && (
-                      <div className="text-teal-600 font-medium text-sm">
-                        +{result.fitNotes.length - 3} more benefits
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <Separator />
-
-                {/* Price and Actions */}
-                <div className="flex flex-col h-[180px]"> {/* Fixed height container for consistent alignment */}
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="text-2xl font-bold">
-                      ${result.shopifyProduct?.price || result.pattern.price}
-                      {result.shopifyProduct?.currencyCode && 
-                        <span className="text-sm ml-1 font-normal">{result.shopifyProduct.currencyCode}</span>
-                      }
-                    </div>
-                    <div className="text-sm text-gray-500">Free shipping</div>
-                  </div>
-
-                  {/* This spacer pushes buttons to the bottom */}
-                  <div className="flex-grow"></div>
-                  
-                  <div className="space-y-2 mt-auto"> {/* mt-auto pushes to bottom */}
-                    <Button
-                      onClick={() => handleAddToCart(result)}
-                      className="w-full bg-brand-teal hover:bg-brand-teal-dark text-white"
-                      size="lg"
-                      disabled={result.shopifyProduct?.availableForSale === false}
-                    >
-                      <ShoppingCart className="w-4 h-4 mr-2" />
-                      {result.shopifyProduct?.availableForSale === false 
-                        ? 'Out of Stock' 
-                        : `Add to Cart - $${result.shopifyProduct?.price || result.pattern.price}`}
-                    </Button>
-                    <Button
-                      onClick={() => handleViewProduct(result)}
-                      variant="outline"
-                      className="w-full border-brand-teal text-brand-teal hover:bg-brand-teal hover:text-white"
-                    >
-                      <ExternalLink className="w-4 h-4 mr-2" />
-                      View Details
-                    </Button>
-                  </div>
+                  <div className="text-xs text-gray-600 font-medium">Length</div>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Products Section */}
+        <div className="px-4 py-5 md:p-6">
+          <div className="mb-6">
+            <div className="flex items-center mb-4">
+              <ShoppingCart className="h-5 w-5 mr-2 text-brand-teal" />
+              <h3 className="text-lg font-semibold text-gray-900">Available Products</h3>
+            </div>
+            
+            {/* Products Grid - Enhanced with images and cart functionality */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+              {Object.entries(PRODUCT_TYPES).map(([type, name]) => {
+                const products = result.products?.[type as ProductType] || [];
+                const product = products[0]; // Get first product of each type
+                
+                // Always show product card even if no specific product data is available
+                // This ensures we don't show "Coming Soon" when products are actually available
+                const defaultProduct = {
+                  id: `default-${type}`,
+                  title: `${name}`,
+                  description: `${name} for ${result.pattern.name}`,
+                  price: result.pattern.price || 39.99,
+                  availableForSale: true
+                };
+                
+                const displayProduct = product || defaultProduct;
+
+                // Check if we have actual products for this type
+                const hasProducts = displayProduct && displayProduct.id && !displayProduct.id.startsWith('default-');
+
+                return (
+                  <div key={type} className="bg-white border border-gray-200 rounded-xl overflow-hidden hover:border-brand-teal/30 hover:shadow-lg transition-all duration-300 flex flex-col h-full group">
+                    {/* Product Image */}
+                    <div className="aspect-square w-full bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center relative overflow-hidden">
+                      {hasProducts && displayProduct.featuredImage ? (
+                        <Image
+                          src={displayProduct.featuredImage}
+                          alt={displayProduct.title}
+                          fill
+                          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                          className="object-cover transition-transform duration-300 group-hover:scale-105"
+                          quality={90}
+                          priority={false}
+                          placeholder="blur"
+                          blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k="
+                        />
+                      ) : (
+                        <div className="flex flex-col items-center justify-center text-gray-400">
+                          <ShoppingCart className="h-8 w-8 mb-2" />
+                          <span className="text-xs font-medium">{name}</span>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Product Info - flex-grow to push button to bottom */}
+                    <div className="p-3 md:p-4 flex flex-col flex-grow">
+                      <div className="text-sm font-semibold text-gray-900 mb-2 overflow-hidden" style={{
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical'
+                      }} title={displayProduct.title}>
+                        {hasProducts ? displayProduct.title : `${name} - ${result.pattern.name}`}
+                      </div>
+                      
+                      {/* Price */}
+                      <div className="text-lg font-bold text-brand-teal mb-2">
+                        ${hasProducts ? displayProduct.price : result.pattern.price || '39.99'}
+                        <span className="text-xs text-gray-500 ml-1 font-normal">
+                          {hasProducts ? displayProduct.currencyCode || 'USD' : 'USD'}
+                        </span>
+                        {hasProducts && (
+                          <div className={`text-xs mt-1 font-medium ${displayProduct.availableForSale ? 'text-green-600' : 'text-red-600'}`}>
+                            {displayProduct.availableForSale ? '✓ In Stock' : '✗ Out of Stock'}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Spacer to push button to bottom */}
+                      <div className="flex-grow"></div>
+
+                      {/* Add to Cart Button - now at bottom */}
+                      {hasProducts ? (
+                        <Button 
+                          size="sm" 
+                          className="w-full text-xs py-2.5 mt-3 bg-brand-teal hover:bg-brand-teal-dark text-white font-medium rounded-lg transition-all duration-200 hover:scale-105 active:scale-95"
+                          onClick={() => addToCart(displayProduct.variant.id, displayProduct.title)}
+                          disabled={addingToCart === displayProduct.variant.id || !displayProduct.availableForSale}
+                        >
+                          {addingToCart === displayProduct.variant.id ? (
+                            <>
+                              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-1"></div>
+                              Adding...
+                            </>
+                          ) : displayProduct.availableForSale ? (
+                            <>
+                              <Plus className="h-3 w-3 mr-1" />
+                              Add to Cart
+                            </>
+                          ) : (
+                            '✗ Out of Stock'
+                          )}
+                        </Button>
+                      ) : (
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          className="w-full text-xs py-2.5 mt-3 border-brand-teal/30 text-brand-teal hover:bg-brand-teal/5 rounded-lg"
+                          disabled
+                        >
+                          Coming Soon
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Fit Notes */}
+          {result.fitNotes.length > 0 && (
+            <div className="bg-gradient-to-r from-brand-teal/5 to-primary/5 rounded-lg p-4 md:p-5 border border-brand-teal/10">
+              <div className="flex items-center mb-3">
+                <CheckCircle className="h-5 w-5 mr-2 text-brand-teal" />
+                <h4 className="font-semibold text-gray-900">Fit Notes</h4>
+              </div>
+              <ul className="space-y-2">
+                {result.fitNotes.map((note: string, noteIndex: number) => (
+                  <li key={noteIndex} className="text-sm text-gray-700 flex items-start leading-relaxed">
+                    <span className="text-brand-teal mr-2 mt-1 font-bold">•</span>
+                    {note}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
       </div>
+    );
+  };
 
-      {/* Additional Actions */}
-      <Card>
-        <CardContent className="pt-8 pb-8">
-          <div className="text-center space-y-6">
-            <div>
-              <CardTitle className="text-xl mb-2">Not quite right?</CardTitle>
-              <CardDescription className="max-w-md mx-auto">
-                Try adjusting your measurements or contact our expert team for personalized sizing assistance.
-              </CardDescription>
-            </div>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button onClick={onStartOver} variant="outline" size="lg" className="border-brand-teal text-brand-teal hover:bg-brand-teal hover:text-white">
-              Try Different Measurements
-            </Button>
-            <Button size="lg" className="bg-brand-teal hover:bg-brand-teal-dark text-white">
-              Contact Sizing Expert
-            </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+  // Combine all results with global indexing
+  const allResults = [
+    ...(results.bestFit || []),
+    ...(results.goodFit || []),
+    ...(results.mightFit || [])
+  ];
 
-      {/* Trust Indicators */}
-      <Card className="professional-card">
-        <CardContent className="pt-8 pb-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
-            <div className="space-y-3">
-              <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
-                <CheckCircle className="w-8 h-8 text-primary" />
-              </div>
-              <div className="font-bold text-lg">Perfect Fit Guarantee</div>
-              <div className="text-sm text-gray-600">Free exchanges if the fit isn&apos;t perfect</div>
-            </div>
-            
-            <div className="space-y-3">
-              <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
-                <ShoppingCart className="w-8 h-8 text-primary" />
-              </div>
-              <div className="font-bold text-lg">Fast & Free Shipping</div>
-              <div className="text-sm text-gray-600">2-day delivery on all orders</div>
-            </div>
-            
-            <div className="space-y-3">
-              <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
-                <Star className="w-8 h-8 text-primary" />
-              </div>
-              <div className="font-bold text-lg">5-Star Reviews</div>
-              <div className="text-sm text-gray-600">Trusted by thousands of pet parents</div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+  return (
+    <div className="space-y-6 md:space-y-8">
+      {allResults.map((result, globalIndex: number) => 
+        renderPatternCard(result, globalIndex)
+      )}
+
+      {/* Start Over Button */}
+      <div className="text-center pt-6">
+        <Button 
+          onClick={onStartOver} 
+          className="bg-brand-teal hover:bg-brand-teal-dark text-white px-8 py-3 rounded-lg text-base font-medium shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 active:scale-95"
+        >
+          Find Another Pattern
+        </Button>
+      </div>
     </div>
   );
 }

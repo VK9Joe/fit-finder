@@ -17,14 +17,42 @@ export interface CoatPattern {
   category: string;
   patternCode: string;
   measurements: {
+    // Basic ranges
     minLength: number;
     maxLength: number;
-    minTailSize: number;
-    maxTailSize: number;
     minNeck: number;
     maxNeck: number;
     minChest: number;
     maxChest: number;
+    
+    // Ideal ranges for better scoring
+    idealNeckMin?: number;
+    idealNeckMax?: number;
+    idealChestMin?: number;
+    idealChestMax?: number;
+    
+    // Multiple length measurements
+    twLength?: number;
+    rcLength?: number;
+    wcLength?: number;
+    ccLength?: number;
+    
+    // Pattern finished measurements
+    patternFinishedNeck?: number;
+    patternFinishedChestMin?: number;
+    patternFinishedChestMax?: number;
+    
+    // Legacy measurements for comparison
+    oldNeckMin?: number;
+    oldNeckMax?: number;
+    oldChestMin?: number;
+    oldChestMax?: number;
+    oldLengthMin?: number;
+    oldLengthMax?: number;
+    
+    // Legacy tail size (for backward compatibility)
+    minTailSize?: number;
+    maxTailSize?: number;
   };
   productId: string;
   productUrl: string;
@@ -53,6 +81,53 @@ export interface FitResult {
   score: number;
   fitNotes: string[];
   shopifyProduct?: ShopifyProductInfo | null;
+}
+
+// New interfaces for the advanced pattern finder
+export interface UserInput {
+  breed: string;
+  neckCircumference: number;
+  chestCircumference: number;
+  backLength: number;
+  tailType: 'down/tucked' | 'bobbed/docked' | 'straight' | 'up or curly';
+  chondrodystrophic: boolean; // very short legs like Corgi, Basset Hound, Dachshund
+}
+
+export interface AdvancedFitResult {
+  pattern: CoatPattern;
+  finalScore: number;
+  fitLabel: 'Best Fit' | 'Good Fit' | 'Might Fit' | 'Poor Fit';
+  neckScore: number;
+  chestScore: number;
+  lengthScore: number;
+  fitNotes: string[];
+  disqualified: boolean;
+  disqualificationReason?: string;
+}
+
+// Categorized fit results
+export interface CategorizedFitResults {
+  bestFit: AdvancedFitResult[];
+  goodFit: AdvancedFitResult[];
+  mightFit: AdvancedFitResult[];
+  poorFit: AdvancedFitResult[];
+}
+
+// Product type definitions
+export const PRODUCT_TYPES = {
+  'RC': 'Rain Coat',
+  'TW': 'Tummy Warmer', 
+  'WC': 'Winter Coat',
+  'CC': 'Cooling Coat'
+} as const;
+
+export type ProductType = keyof typeof PRODUCT_TYPES;
+
+// Enhanced fit result with products
+export interface EnhancedFitResult extends AdvancedFitResult {
+  products: {
+    [K in ProductType]?: ShopifyProductInfo[];
+  };
 }
 
 export interface FormErrors {

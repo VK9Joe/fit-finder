@@ -289,3 +289,47 @@ export const SEARCH_PRODUCTS_QUERY = /* GraphQL */ `
     }
   }
 `;
+
+// Minimal query for FitFinder - only essential fields
+export const MINIMAL_PRODUCTS_QUERY = /* GraphQL */ `
+  query MinimalProducts($first: Int!, $after: String) {
+    products(first: $first, after: $after) {
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
+      edges {
+        node {
+          id
+          title
+          handle
+          availableForSale
+          onlineStoreUrl
+          featuredImage {
+            url
+            altText
+          }
+          priceRange {
+            minVariantPrice {
+              amount
+              currencyCode
+            }
+          }
+          variants(first: 50) {
+            edges {
+              node {
+                id
+                sku
+                availableForSale
+                price {
+                  amount
+                  currencyCode
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+`;
