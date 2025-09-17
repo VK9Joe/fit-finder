@@ -108,33 +108,41 @@ export default function FitFinder() {
       }>>;
     }>;
   } | null>(null);
+  
   const [lastMeasurements, setLastMeasurements] = useState<UserInput | null>(null);
 
-  // Load measurements from URL on component mount
+  // Check URL parameters on mount and when they change
   useEffect(() => {
-    // Check URL parameters
-    const breed = searchParams.get('breed');
-    const neckCircumference = searchParams.get('neck');
-    const chestCircumference = searchParams.get('chest');
-    const backLength = searchParams.get('length');
-    const tailType = searchParams.get('tail') as UserInput['tailType'] | null;
-    const chondrodystrophic = searchParams.get('chondro') === 'true';
+    // Only run on client side
+    if (typeof window === 'undefined') return;
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const hasParams = ['breed', 'neck', 'chest', 'length', 'tail'].some(param => urlParams.has(param));
     
-    // If URL has all required parameters, use them and show results
-    if (breed && neckCircumference && chestCircumference && backLength && tailType) {
-      const measurements: UserInput = {
-        breed,
-        neckCircumference: parseFloat(neckCircumference),
-        chestCircumference: parseFloat(chestCircumference),
-        backLength: parseFloat(backLength),
-        tailType,
-        chondrodystrophic
-      };
-      
-      setLastMeasurements(measurements);
-      loadResults(measurements);
+    if (hasParams) {
+      const breed = urlParams.get('breed');
+      const neck = parseFloat(urlParams.get('neck') || '0');
+      const chest = parseFloat(urlParams.get('chest') || '0');
+      const length = parseFloat(urlParams.get('length') || '0');
+      const tail = urlParams.get('tail') as UserInput['tailType'];
+      const chondro = urlParams.get('chondro') === 'true';
+
+      // Validate that we have complete measurements
+      if (breed && neck > 0 && chest > 0 && length > 0 && tail) {
+        const measurements: UserInput = {
+          breed,
+          neckCircumference: neck,
+          chestCircumference: chest,
+          backLength: length,
+          tailType: tail,
+          chondrodystrophic: chondro
+        };
+
+        setLastMeasurements(measurements);
+        loadResults(measurements);
+      }
     } else {
-      // No URL parameters, show form
+      // Clear state if no parameters
       setAppState('form');
       setLastMeasurements(null);
       setEnhancedResults(null);
@@ -171,17 +179,13 @@ export default function FitFinder() {
     try {
       // Use the enhanced pattern finder
       const categorizedResults = findPatterns(measurements, patternsFromCsv);
-      // setResults(categorizedResults); // Removed - using enhancedResults instead
       
       // Enhance with products
       const enhanced = await getTop3PatternsWithProducts(categorizedResults);
       setEnhancedResults(enhanced);
-      
       setAppState('results');
     } catch (error) {
       console.error('Error getting fit results:', error);
-      // Fallback to empty results with error state
-      // setResults(null); // Removed - using enhancedResults instead
       setEnhancedResults(null);
       setAppState('results');
     }
@@ -195,12 +199,12 @@ export default function FitFinder() {
   const handleStartOver = () => {
     // Clear URL parameters to show form
     router.push('/', { scroll: false });
-    
     setAppState('form');
     setLastMeasurements(null);
     setEnhancedResults(null);
   };
 
+  // Regular layout
   return (
     <div className="relative">
       {/* Hero Section - Always visible */}

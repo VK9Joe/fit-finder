@@ -3,16 +3,9 @@
 import { PRODUCT_TYPES, ProductType } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { AlertCircle, ShoppingCart, CheckCircle, Plus } from 'lucide-react';
+import { AlertCircle, ShoppingCart, CheckCircle, ExternalLink } from 'lucide-react';
 import Image from 'next/image';
-import { useState } from 'react';
-import { enhancedAddToCart, extractVariantId, isValidVariantId } from '@/lib/shopify-cart-iframe';
-
-// Helper function to truncate description text
-// function truncateDescription(text: string | undefined, maxLength: number): string {
-//   if (!text) return '';
-//   return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
-// }
+import { buildShopifyProductUrl } from '@/lib/shopify-url-builder';
 
 interface FitResultsProps {
   results: {
@@ -111,90 +104,19 @@ interface FitResultsProps {
 }
 
 export default function FitResults({ results, onStartOver }: FitResultsProps) {
-  const [addingToCart, setAddingToCart] = useState<string | null>(null);
-
-
-  // Enhanced add to cart functionality for iframe usage in Shopify store
-  const addToCart = async (variantId: string, productTitle: string) => {
-    setAddingToCart(variantId);
-    
+  // View product functionality - redirects to Shopify with pre-selected variant
+  const viewProduct = (productHandle: string, variantId: string, productType: ProductType) => {
     try {
-      // Validate variant ID format
-      if (!isValidVariantId(variantId)) {
-        throw new Error('Invalid variant ID format');
-      }
-      
-      // Extract numeric variant ID if it's a GID
-      const numericVariantId = extractVariantId(variantId);
-      
-      // Use the enhanced cart utility
-      const success = await enhancedAddToCart(numericVariantId, productTitle, 1);
-      
-      if (success) {
-        // Show success feedback
-        console.log(`✅ Successfully added ${productTitle} to cart`);
-        
-        // Optional: Show a subtle success message instead of alert
-        // You can replace this with a toast notification or other UI feedback
-        const successMessage = `✅ ${productTitle} added to cart!`;
-        
-        // Create a temporary notification element
-        if (typeof window !== 'undefined') {
-          const notification = document.createElement('div');
-          notification.textContent = successMessage;
-          notification.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: #28a745;
-            color: white;
-            padding: 12px 16px;
-            border-radius: 6px;
-            font-size: 14px;
-            font-weight: 500;
-            z-index: 10000;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            animation: slideIn 0.3s ease-out;
-          `;
-          
-          // Add animation keyframes
-          if (!document.getElementById('cart-notification-styles')) {
-            const style = document.createElement('style');
-            style.id = 'cart-notification-styles';
-            style.textContent = `
-              @keyframes slideIn {
-                from { transform: translateX(100%); opacity: 0; }
-                to { transform: translateX(0); opacity: 1; }
-              }
-              @keyframes slideOut {
-                from { transform: translateX(0); opacity: 1; }
-                to { transform: translateX(100%); opacity: 0; }
-              }
-            `;
-            document.head.appendChild(style);
-          }
-          
-          document.body.appendChild(notification);
-          
-          // Remove notification after 3 seconds
-          setTimeout(() => {
-            notification.style.animation = 'slideOut 0.3s ease-in';
-            setTimeout(() => {
-              if (notification.parentNode) {
-                notification.parentNode.removeChild(notification);
-              }
-            }, 300);
-          }, 3000);
-        }
-      } else {
-        throw new Error('Failed to add product to cart');
-      }
-      
+      const productUrl = buildShopifyProductUrl(productHandle, variantId, productType);
+      // Open in new tab to maintain user's place in the fit finder
+      window.open(productUrl, '_blank', 'noopener,noreferrer');
     } catch (error) {
-      console.error('Failed to add to cart:', error);
-      alert(`❌ Sorry, there was an error adding ${productTitle} to your cart. Please try again.`);
-    } finally {
-      setAddingToCart(null);
+      console.error('Failed to build product URL:', error);
+      // Fallback - try to open product page without variant
+      const storeUrl = process.env.NEXT_PUBLIC_SHOPIFY_STORE_URL?.replace(/^https?:\/\//, '') || '';
+      if (storeUrl && productHandle) {
+        window.open(`https://${storeUrl}/products/${productHandle}`, '_blank', 'noopener,noreferrer');
+      }
     }
   };
 
@@ -219,6 +141,15 @@ export default function FitResults({ results, onStartOver }: FitResultsProps) {
       case 'Poor Fit': return 'bg-red-100 text-red-800';
       default: return 'bg-gray-100 text-gray-800';
     }
+  };
+
+  // Helper function to get qualitative score description
+  const getScoreDescription = (score: number): { text: string; color: string } => {
+    if (score >= 0.95) return { text: 'Excellent', color: 'text-green-600' };
+    if (score >= 0.85) return { text: 'Very Good', color: 'text-green-600' };
+    if (score >= 0.75) return { text: 'Good', color: 'text-blue-600' };
+    if (score >= 0.65) return { text: 'Fair', color: 'text-yellow-600' };
+    return { text: 'Needs Review', color: 'text-orange-600' };
   };
 
   const renderPatternCard = (result: {
@@ -254,6 +185,11 @@ export default function FitResults({ results, onStartOver }: FitResultsProps) {
     // Use the global index directly as ranking (1-based)
     const ranking = globalIndex + 1;
 
+    const overallFit = getScoreDescription(result.finalScore);
+    const neckFit = getScoreDescription(result.neckScore);
+    const chestFit = getScoreDescription(result.chestScore);
+    const lengthFit = getScoreDescription(result.lengthScore);
+
     return (
       <div key={result.pattern.id} className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden hover:shadow-xl transition-all duration-300 mt-16">
         {/* Pattern Header */}
@@ -269,27 +205,27 @@ export default function FitResults({ results, onStartOver }: FitResultsProps) {
               <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-2">{result.pattern.name}</h2>
               <p className="text-gray-600 mb-4 text-sm leading-relaxed">{result.pattern.description}</p>
               
-              {/* Score Display - Mobile Responsive */}
+              {/* Score Display - Mobile Responsive with qualitative descriptions */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
                 <div className="text-center bg-white/50 rounded-lg p-3">
-                  <div className="text-2xl md:text-3xl font-bold text-brand-teal">{Math.round(result.finalScore * 100)}%</div>
+                  <div className={`text-lg md:text-xl font-bold ${overallFit.color}`}>{overallFit.text}</div>
                   <div className="text-xs text-gray-600 font-medium">Overall Fit</div>
                 </div>
                 <div className="text-center bg-white/50 rounded-lg p-3">
-                  <div className={`text-lg md:text-xl font-bold ${result.neckScore >= 0.95 ? 'text-green-600' : 'text-brand-teal'}`}>
-                    {Math.round(result.neckScore * 100)}%
+                  <div className={`text-sm md:text-base font-bold ${neckFit.color}`}>
+                    {neckFit.text}
                   </div>
                   <div className="text-xs text-gray-600 font-medium">Neck</div>
                 </div>
                 <div className="text-center bg-white/50 rounded-lg p-3">
-                  <div className={`text-lg md:text-xl font-bold ${result.chestScore >= 0.95 ? 'text-green-600' : 'text-brand-teal'}`}>
-                    {Math.round(result.chestScore * 100)}%
+                  <div className={`text-sm md:text-base font-bold ${chestFit.color}`}>
+                    {chestFit.text}
                   </div>
                   <div className="text-xs text-gray-600 font-medium">Chest</div>
                 </div>
                 <div className="text-center bg-white/50 rounded-lg p-3">
-                  <div className={`text-lg md:text-xl font-bold ${result.lengthScore >= 0.95 ? 'text-green-600' : 'text-brand-teal'}`}>
-                    {Math.round(result.lengthScore * 100)}%
+                  <div className={`text-sm md:text-base font-bold ${lengthFit.color}`}>
+                    {lengthFit.text}
                   </div>
                   <div className="text-xs text-gray-600 font-medium">Length</div>
                 </div>
@@ -377,23 +313,18 @@ export default function FitResults({ results, onStartOver }: FitResultsProps) {
                       {/* Spacer to push button to bottom */}
                       <div className="flex-grow"></div>
 
-                      {/* Add to Cart Button - now at bottom */}
+                      {/* View Product Button - now at bottom */}
                       {hasProducts ? (
                         <Button 
                           size="sm" 
                           className="w-full text-xs py-2.5 mt-3 bg-brand-teal hover:bg-brand-teal-dark text-white font-medium rounded-lg transition-all duration-200 hover:scale-105 active:scale-95"
-                          onClick={() => addToCart(displayProduct.variant.id, displayProduct.title)}
-                          disabled={addingToCart === displayProduct.variant.id || !displayProduct.availableForSale}
+                          onClick={() => viewProduct(displayProduct.handle, displayProduct.variant.id, type as ProductType)}
+                          disabled={!displayProduct.availableForSale}
                         >
-                          {addingToCart === displayProduct.variant.id ? (
+                          {displayProduct.availableForSale ? (
                             <>
-                              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-1"></div>
-                              Adding...
-                            </>
-                          ) : displayProduct.availableForSale ? (
-                            <>
-                              <Plus className="h-3 w-3 mr-1" />
-                              Add to Cart
+                              <ExternalLink className="h-3 w-3 mr-1" />
+                              View Product
                             </>
                           ) : (
                             '✗ Out of Stock'
@@ -431,6 +362,21 @@ export default function FitResults({ results, onStartOver }: FitResultsProps) {
                   </li>
                 ))}
               </ul>
+            </div>
+          )}
+
+          {/* Debug Info - only show in development */}
+          {process.env.NODE_ENV === 'development' && (
+            <div className="mt-4 p-3 bg-gray-50 rounded-lg text-xs text-gray-600">
+              <div className="font-mono">
+                Debug: Overall {(result.finalScore * 100).toFixed(1)}% | 
+                Neck {(result.neckScore * 100).toFixed(1)}% | 
+                Chest {(result.chestScore * 100).toFixed(1)}% | 
+                Length {(result.lengthScore * 100).toFixed(1)}%
+              </div>
+              <div className="text-xs text-gray-500 mt-1">
+                Open browser console (F12) for detailed scoring analysis
+              </div>
             </div>
           )}
         </div>

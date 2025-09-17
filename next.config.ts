@@ -20,6 +20,48 @@ const nextConfig: NextConfig = {
     dangerouslyAllowSVG: true,
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
+  
+  // Allow iframe embedding from k9apparel.com
+  async headers() {
+    return [
+      {
+        // Apply these headers to all routes
+        source: '/(.*)',
+        headers: [
+          {
+            key: 'X-Frame-Options',
+            value: 'ALLOWALL', // Allow all domains to frame this content
+          },
+          {
+            key: 'Content-Security-Policy',
+            value: "frame-ancestors 'self' https://k9apparel.com https://*.k9apparel.com;",
+          },
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff',
+          },
+          {
+            key: 'Referrer-Policy',
+            value: 'origin-when-cross-origin',
+          },
+        ],
+      },
+      // Special iframe-specific route with more permissive settings
+      {
+        source: '/iframe/:path*',
+        headers: [
+          {
+            key: 'X-Frame-Options',
+            value: 'SAMEORIGIN', // More restrictive for iframe-specific routes
+          },
+          {
+            key: 'Content-Security-Policy',
+            value: "frame-ancestors https://k9apparel.com https://*.k9apparel.com;",
+          },
+        ],
+      },
+    ];
+  },
 };
 
 export default nextConfig;

@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import { UserInput } from '@/types';
-import { getAvailableBreeds, getTailTypes } from '@/utils/patternFinder';
+import { getTailTypes } from '@/utils/patternFinder';
+import { BreedAutocomplete } from '@/components/BreedAutocomplete';
 
 interface FormErrors {
   [key: string]: string | undefined;
@@ -88,30 +89,18 @@ export default function FitFinderForm({ onSubmit, isLoading = false, initialMeas
                   <label className="block text-sm font-semibold text-gray-800 mb-3">
                     Breed
                   </label>
-                  <div className="relative">
-                    <select
-                      value={measurements.breed || ''}
-                      onChange={(e) => updateMeasurement('breed', e.target.value)}
-                      className={`block w-full h-12 pl-4 pr-10 py-3 border rounded-lg text-gray-900 text-base ${
-                        errors.breed ? 'border-red-300' : 'border-gray-300'
-                      } bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors`}
-                    >
-                      <option value="" disabled>Select your dog&apos;s breed</option>
-                      {getAvailableBreeds().map((breed) => (
-                        <option key={breed} value={breed}>
-                          {breed.charAt(0).toUpperCase() + breed.slice(1)}
-                        </option>
-                      ))}
-                    </select>
-                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
-                      <svg className="h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                        <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-                      </svg>
-                    </div>
-                  </div>
+                  <BreedAutocomplete
+                    value={measurements.breed || ''}
+                    onValueChange={(value) => updateMeasurement('breed', value)}
+                    error={!!errors.breed}
+                    className="w-full"
+                  />
                   {errors.breed && (
                     <p className="text-red-500 text-sm mt-1">{errors.breed}</p>
                   )}
+                  <p className="text-xs text-gray-500 mt-2">
+                    Start typing to search breeds. Can&apos;t find yours? Select &quot;Breed Not Listed&quot;
+                  </p>
                 </div>
               </div>
             </div>
@@ -126,28 +115,7 @@ export default function FitFinderForm({ onSubmit, isLoading = false, initialMeas
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {/* Back Length */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-800 mb-3">
-                    Back Length
-                  </label>
-                  <input
-                    type="number"
-                    value={measurements.backLength || ''}
-                    onChange={(e) => updateMeasurement('backLength', parseFloat(e.target.value) || 0)}
-                    placeholder="15"
-                    className={`w-full h-12 px-4 border rounded-lg text-gray-900 text-base focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors ${
-                      errors.backLength ? 'border-red-300' : 'border-gray-300'
-                    }`}
-                    min="1"
-                    step="1"
-                  />
-                  {errors.backLength && (
-                    <p className="text-red-500 text-sm mt-1">{errors.backLength}</p>
-                  )}
-                </div>
-
-                {/* Neck Circumference */}
+                {/* 1. Neck Circumference */}
                 <div>
                   <label className="block text-sm font-semibold text-gray-800 mb-3">
                     Neck Circumference
@@ -168,7 +136,7 @@ export default function FitFinderForm({ onSubmit, isLoading = false, initialMeas
                   )}
                 </div>
 
-                {/* Chest Circumference */}
+                {/* 2. Chest Circumference */}
                 <div>
                   <label className="block text-sm font-semibold text-gray-800 mb-3">
                     Chest Circumference
@@ -186,6 +154,27 @@ export default function FitFinderForm({ onSubmit, isLoading = false, initialMeas
                   />
                   {errors.chestCircumference && (
                     <p className="text-red-500 text-sm mt-1">{errors.chestCircumference}</p>
+                  )}
+                </div>
+
+                {/* 3. Back Length */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-800 mb-3">
+                    Back Length
+                  </label>
+                  <input
+                    type="number"
+                    value={measurements.backLength || ''}
+                    onChange={(e) => updateMeasurement('backLength', parseFloat(e.target.value) || 0)}
+                    placeholder="15"
+                    className={`w-full h-12 px-4 border rounded-lg text-gray-900 text-base focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors ${
+                      errors.backLength ? 'border-red-300' : 'border-gray-300'
+                    }`}
+                    min="1"
+                    step="1"
+                  />
+                  {errors.backLength && (
+                    <p className="text-red-500 text-sm mt-1">{errors.backLength}</p>
                   )}
                 </div>
               </div>

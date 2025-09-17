@@ -1,4 +1,5 @@
-import { CoatPattern, UserInput, AdvancedFitResult } from '@/types';
+import { UserInput, CoatPattern, AdvancedFitResult, CategorizedFitResults } from '@/types';
+import { logScoreBreakdown, logFitProcess } from './fitLogger';
 
 // Re-export types from the main types file
 export type { UserInput, AdvancedFitResult };
@@ -25,32 +26,26 @@ const breedAliases: Record<string, string> = {
   'miniature pinscher': 'MP',
   'miniature poodle': 'MPD',
   'pug': 'PG',
+  'rat terrier': 'RT',
   'rhodesian ridgeback': 'RR',
   'german shepherd': 'RR', // Alternative breed for RR
-  'rat terrier': 'RT',
   'vizsla': 'VS',
   'weimaraner': 'WM',
   'whippet': 'WP'
 };
 
-/**
- * Normalize breed name for matching
- */
 function normalizeBreed(breed: string): string {
   return breed.toLowerCase().trim();
 }
 
-/**
- * Get pattern key for breed
- */
 function getPatternKey(breed: string): string | null {
   const normalizedBreed = normalizeBreed(breed);
   return breedAliases[normalizedBreed] || null;
 }
 
 /**
- * Calculate neck fit score using asymmetrical gaussian curve
- * Based on the document's scoring logic
+ * Calculate neck fit score using asymmetric bell curve
+ * Exactly as specified in the document with Python implementation
  */
 function calculateNeckScore(
   userNeck: number,
@@ -58,39 +53,53 @@ function calculateNeckScore(
   idealLow: number,
   idealHigh: number,
   acceptableHigh: number
-): { score: number; note?: string; disqualified: boolean } {
+): { score: number; note?: string; disqualified: boolean; maxCombinedScore?: number } {
   // Disqualification: outside acceptable range
   if (userNeck < acceptableLow || userNeck > acceptableHigh) {
     return { score: 0, disqualified: true };
   }
 
-  // Calculate score using gaussian curve approximation
+  // Calculate asymmetric bell curve parameters (from Python file)
+  const values = [acceptableLow, acceptableHigh, idealLow, idealHigh];
+  const sortedValues = [...values].sort((a, b) => a - b);
+  const mu = (sortedValues[1] + sortedValues[2]) / 2; // True median
+  
+  // Target height at acceptable bounds = 0.5
+  const targetHeight = 0.5;
+  const k = Math.sqrt(-2.0 * Math.log(targetHeight));
+  
+  // Calculate different sigma values for left and right sides
+  const sigmaLeft = (mu - acceptableLow) / k;
+  const sigmaRight = (acceptableHigh - mu) / k;
+  
+  // Calculate score using asymmetric Gaussian
   let score: number;
-  let note: string | undefined;
-
-  if (userNeck >= idealLow && userNeck <= idealHigh) {
-    // Ideal range - score 1.0
-    score = 1.0;
-  } else if (userNeck < idealLow) {
-    // Between acceptable low and ideal low - score 0.5 to 1.0
-    const range = idealLow - acceptableLow;
-    const position = (userNeck - acceptableLow) / range;
-    score = 0.5 + (position * 0.5);
-    note = "The neck on this pattern may be slightly roomy for your pup.";
+  if (userNeck <= mu) {
+    score = Math.exp(-0.5 * Math.pow((userNeck - mu) / sigmaLeft, 2));
   } else {
-    // Between ideal high and acceptable high - score 0.5 to 1.0
-    const range = acceptableHigh - idealHigh;
-    const position = (userNeck - idealHigh) / range;
-    score = 1.0 - (position * 0.5);
-    note = "The neck on this pattern may be slightly snug for your pup, but it is within the acceptable range.";
+    score = Math.exp(-0.5 * Math.pow((userNeck - mu) / sigmaRight, 2));
   }
-
-  return { score: Math.max(0.5, Math.min(1.0, score)), note, disqualified: false };
+  
+  // Apply document-specified notes and score limits
+  let note: string | undefined;
+  let maxCombinedScore: number | undefined;
+  
+  if (userNeck >= acceptableLow && userNeck < idealLow) {
+    note = "The neck on this pattern may be slightly roomy for your pup.";
+    maxCombinedScore = 0.79; // Limit combined score to 0.79
+  } else if (userNeck > idealHigh && userNeck <= acceptableHigh) {
+    note = "The neck on this pattern may be slightly snug for your pup, but it is within the acceptable range.";
+    maxCombinedScore = 0.79; // Limit combined score to 0.79
+  }
+  
+  // Ensure score is between 0.5 and 1.0 within acceptable range
+  score = Math.max(0.5, Math.min(1.0, score));
+  
+  return { score, note, disqualified: false, maxCombinedScore };
 }
 
 /**
- * Calculate chest fit score using linear ranges
- * Based on the document's scoring logic
+ * Calculate chest fit score exactly as specified in document
  */
 function calculateChestScore(
   userChest: number,
@@ -102,28 +111,49 @@ function calculateChestScore(
     return { score: 0, disqualified: true, note: "" };
   }
 
-  // Ideal chest fit is equal to Chest_Acceptable_Low + 1.0
+  // Per document: ideal chest fit = Chest_Acceptable_Low + 1.0
   const idealChest = acceptableLow + 1.0;
   
   let score: number;
   let note: string;
 
-  if (userChest >= idealChest - 1.0 && userChest <= idealChest + 1.0) {
-    // Within 1.0 of ideal chest fit
+  // Document specifies:
+  // - Score 0.6 at Chest_Acceptable_High
+  // - Score rises linearly to 1.0 at ideal chest fit (Chest_Acceptable_Low + 1.0)  
+  // - Score falls from 1.0 to 0.85 at Chest_Acceptable_Low
+  
+  if (userChest === idealChest) {
     score = 1.0;
     note = "The chest on this pattern is within the ideal range for your pup.";
+  } else if (userChest >= acceptableLow && userChest < idealChest) {
+    // Between acceptableLow and ideal: falling from 0.85 to 1.0
+    const position = (userChest - acceptableLow) / (idealChest - acceptableLow);
+    score = 0.85 + (position * 0.15);
+    if (Math.abs(userChest - idealChest) <= 1.0) {
+      note = "The chest on this pattern is within the ideal range for your pup.";
+    } else {
+      note = "The chest fit on this pattern falls within the acceptable range for your pup's measurements.";
+    }
+  } else if (userChest > idealChest && userChest <= acceptableHigh) {
+    // Between ideal and acceptableHigh: falling from 1.0 to 0.6
+    const position = (userChest - idealChest) / (acceptableHigh - idealChest);
+    score = 1.0 - (position * 0.4);
+    if (Math.abs(userChest - idealChest) <= 1.0) {
+      note = "The chest on this pattern is within the ideal range for your pup.";
+    } else {
+      note = "The chest fit on this pattern falls within the acceptable range for your pup's measurements.";
+    }
   } else {
-    // Within acceptable range but not ideal
-    score = 0.85;
+    // Should not reach here due to disqualification check
+    score = 0.6;
     note = "The chest fit on this pattern falls within the acceptable range for your pup's measurements.";
   }
 
-  return { score, note, disqualified: false };
+  return { score: Math.max(0.6, Math.min(1.0, score)), note, disqualified: false };
 }
 
 /**
- * Calculate length fit score based on tail type
- * Based on the document's tail type dependent logic
+ * Calculate length fit score based on tail type - exactly per document
  */
 function calculateLengthScore(
   userLength: number,
@@ -136,15 +166,15 @@ function calculateLengthScore(
 
   switch (tailType) {
     case 'down/tucked':
-      // Pattern allowed to be longer than dog's body
-      // Ideal: 5-15% longer (1.05-1.15)
-      if (lengthRatio >= 1.05 && lengthRatio <= 1.15) {
+      // Down/Tucked Tail - Per document
+      if (lengthRatio === 1.15) {
+        // Ideal Score of 1.0 at Dog Length Input * 1.15
         score = 1.0;
-      } else if (lengthRatio >= 1.0 && lengthRatio < 1.05) {
-        // 0-5% longer: rising from 0.75 to 1.0
-        score = 0.75 + ((lengthRatio - 1.0) / 0.05) * 0.25;
+      } else if (lengthRatio >= 1.05 && lengthRatio < 1.15) {
+        // 5-15% longer: 0.75-1.0 (rising)
+        score = 0.75 + ((lengthRatio - 1.05) / 0.10) * 0.25;
       } else if (lengthRatio > 1.15 && lengthRatio <= 1.25) {
-        // 15-25% longer: falling from 1.0 to 0.75
+        // 15-25% longer: 1.0-0.75 (falling)
         score = 1.0 - ((lengthRatio - 1.15) / 0.10) * 0.25;
       } else {
         score = 0.75;
@@ -153,10 +183,15 @@ function calculateLengthScore(
       break;
 
     case 'straight':
-      // Score 0.75 at 90%, rising to 1.0 at 105%, then falling to 0.75 at 110%
-      if (lengthRatio >= 0.90 && lengthRatio < 1.05) {
+      // Straight Tail - Per document
+      if (lengthRatio === 1.05) {
+        // Ideal Score of 1.0 at Dog Length Input * 1.05
+        score = 1.0;
+      } else if (lengthRatio >= 0.90 && lengthRatio < 1.05) {
+        // Score of 0.75 at 90%, rising linearly to 1.0 at 105%
         score = 0.75 + ((lengthRatio - 0.90) / 0.15) * 0.25;
-      } else if (lengthRatio >= 1.05 && lengthRatio <= 1.10) {
+      } else if (lengthRatio > 1.05 && lengthRatio <= 1.10) {
+        // Falling linearly from 1.0 to 0.75 at 110%
         score = 1.0 - ((lengthRatio - 1.05) / 0.05) * 0.25;
       } else {
         score = 0.75;
@@ -166,10 +201,15 @@ function calculateLengthScore(
 
     case 'bobbed/docked':
     case 'up or curly':
-      // Score 0.75 at 90%, rising to 1.0 at 95%, then falling to 0.75 at 105%
-      if (lengthRatio >= 0.90 && lengthRatio < 0.95) {
+      // Docked, Bobbed, Up, or Curly Tail - Per document
+      if (lengthRatio === 0.95) {
+        // Ideal Score of 1.0 at Dog Length Input * 0.95
+        score = 1.0;
+      } else if (lengthRatio >= 0.90 && lengthRatio < 0.95) {
+        // Score of 0.75 at 90%, rising linearly to 1.0 at 95%
         score = 0.75 + ((lengthRatio - 0.90) / 0.05) * 0.25;
-      } else if (lengthRatio >= 0.95 && lengthRatio <= 1.05) {
+      } else if (lengthRatio > 0.95 && lengthRatio <= 1.05) {
+        // Falling linearly from 1.0 to 0.75 at 105%
         score = 1.0 - ((lengthRatio - 0.95) / 0.10) * 0.25;
       } else {
         score = 0.75;
@@ -188,22 +228,32 @@ function calculateLengthScore(
 }
 
 /**
- * Calculate final score and determine fit label
+ * Calculate final score exactly as specified in document
  */
 function calculateFinalScore(
   neckScore: number,
   chestScore: number,
   lengthScore: number,
-  breedMatch: boolean
+  breedMatch: boolean,
+  maxCombinedScore?: number
 ): { finalScore: number; fitLabel: AdvancedFitResult['fitLabel'] } {
-  // Apply breed penalty if no match
-  const breedPenalty = breedMatch ? 0 : -0.1;
+  // Per document: finalScore = (neckScore + chestScore + lengthScore) / 3
+  let finalScore = (neckScore + chestScore + lengthScore) / 3;
   
-  // Calculate weighted average of the scores (neck 35%, chest 40%, length 25%)
-  const weightedScore = (neckScore * 0.35) + (chestScore * 0.40) + (lengthScore * 0.25);
-  const finalScore = Math.max(0, Math.min(1.0, weightedScore + breedPenalty));
+  // Apply breed penalty if no match: -0.1 to final combined score
+  if (!breedMatch) {
+    finalScore -= 0.1;
+  }
+  
+  // Apply neck-based combined score limit if specified
+  if (maxCombinedScore !== undefined) {
+    finalScore = Math.min(finalScore, maxCombinedScore);
+  }
+  
+  // Ensure score is between 0 and 1
+  finalScore = Math.max(0, Math.min(1.0, finalScore));
 
-  // Determine fit label based on final score
+  // Determine fit label based on document thresholds
   let fitLabel: AdvancedFitResult['fitLabel'];
   if (finalScore >= 0.85) {
     fitLabel = 'Best Fit';
@@ -219,23 +269,18 @@ function calculateFinalScore(
 }
 
 /**
- * Categorized fit results interface
- */
-export interface CategorizedFitResults {
-  bestFit: AdvancedFitResult[];
-  goodFit: AdvancedFitResult[];
-  mightFit: AdvancedFitResult[];
-  poorFit: AdvancedFitResult[];
-}
-
-/**
- * Main pattern finding function - returns top 3 categories
+ * Find patterns using exact document specification
  */
 export function findPatterns(
   userInput: UserInput,
   allPatterns: CoatPattern[]
 ): CategorizedFitResults {
+  console.log('🔍 Starting fit analysis for your dog...');
+  console.log(`Dog details: ${userInput.breed}, Neck: ${userInput.neckCircumference}", Chest: ${userInput.chestCircumference}", Length: ${userInput.backLength}", Tail: ${userInput.tailType}`);
+  
   const results: AdvancedFitResult[] = [];
+  
+  // Get user's pattern key for breed matching
   const userPatternKey = getPatternKey(userInput.breed);
 
   for (const pattern of allPatterns) {
@@ -246,26 +291,24 @@ export function findPatterns(
 
     // Check breed match
     const breedMatch = userPatternKey === pattern.patternCode.split('-')[0];
-    if (!breedMatch) {
-      // Apply breed penalty but don't disqualify
-    }
 
     // Calculate neck score
     const neckResult = calculateNeckScore(
       userInput.neckCircumference,
       measurements.minNeck,
-      measurements.idealNeckMin ?? 0,
-      measurements.idealNeckMax ?? 0,
+      measurements.idealNeckMin ?? measurements.minNeck,
+      measurements.idealNeckMax ?? measurements.maxNeck,
       measurements.maxNeck
     );
 
     if (neckResult.disqualified) {
       disqualified = true;
       disqualificationReason = "Neck measurement outside acceptable range";
-    } else {
-      if (neckResult.note) {
-        fitNotes.push(neckResult.note);
-      }
+      continue;
+    }
+
+    if (neckResult.note) {
+      fitNotes.push(neckResult.note);
     }
 
     // Calculate chest score
@@ -278,104 +321,94 @@ export function findPatterns(
     if (chestResult.disqualified) {
       disqualified = true;
       disqualificationReason = "Chest measurement outside acceptable range";
-    } else {
-      fitNotes.push(chestResult.note);
+      continue;
     }
+
+    fitNotes.push(chestResult.note);
 
     // Calculate length score
     const lengthResult = calculateLengthScore(
       userInput.backLength,
-      measurements.minLength, // Using minLength as the pattern length
+      measurements.twLength ?? measurements.minLength ?? 0,
       userInput.tailType
     );
 
     if (lengthResult.disqualified) {
       disqualified = true;
-      disqualificationReason = "Length measurement outside acceptable range";
-    } else {
-      fitNotes.push(lengthResult.note);
+      disqualificationReason = "Length score below threshold";
+      continue;
     }
 
-    // Add chondrodystrophic leg note if applicable
+    fitNotes.push(lengthResult.note);
+
+    // Add chondrodystrophic note if applicable
     if (userInput.chondrodystrophic) {
       fitNotes.push("Our patterns will generally fit the body/torso of chondrodystrophic pups, but in some cases the raincoat skirting may be too long and cause movement restrictions. We encourage you to try on your new product and promptly initiate a return if it does not fit.");
     }
 
-    // Calculate final score and fit label
-    const { finalScore, fitLabel } = calculateFinalScore(
+    // Calculate final score
+    const finalResult = calculateFinalScore(
       neckResult.score,
       chestResult.score,
       lengthResult.score,
-      breedMatch
+      breedMatch,
+      neckResult.maxCombinedScore
     );
 
-    results.push({
+    const result: AdvancedFitResult = {
       pattern,
-      finalScore,
-      fitLabel,
+      finalScore: finalResult.finalScore,
+      fitLabel: finalResult.fitLabel,
       neckScore: neckResult.score,
       chestScore: chestResult.score,
       lengthScore: lengthResult.score,
       fitNotes,
       disqualified,
       disqualificationReason
-    });
+    };
+
+    results.push(result);
+
+    // Log detailed breakdown for top patterns
+    if (!disqualified && finalResult.finalScore >= 0.65) {
+      logScoreBreakdown({
+        neckScore: neckResult.score,
+        chestScore: chestResult.score,
+        lengthScore: lengthResult.score,
+        finalScore: finalResult.finalScore,
+        breedMatch,
+        pattern,
+        userInput
+      });
+    }
   }
 
-  // Filter out disqualified patterns and sort by score with tie-breaking
-  const validResults = results
-    .filter(result => !result.disqualified)
-    .sort((a, b) => {
-      // Primary sort: by final score (highest first)
-      if (b.finalScore !== a.finalScore) {
-        return b.finalScore - a.finalScore;
-      }
-      
-      // Tie-breaking: if same final score, sort by neck score (highest first)
-      if (b.neckScore !== a.neckScore) {
-        return b.neckScore - a.neckScore;
-      }
-      
-      // Second tie-breaking: if same neck score, sort by chest score (highest first)
-      if (b.chestScore !== a.chestScore) {
-        return b.chestScore - a.chestScore;
-      }
-      
-      // If all scores are equal, maintain original order
-      return 0;
-    });
+  // Sort by final score (highest first)
+  results.sort((a, b) => b.finalScore - a.finalScore);
 
-  // Take only the top 3 results
-  const topResults = validResults.slice(0, 3);
+  // Log overall process summary
+  logFitProcess(userInput, results);
 
-  // Categorize the top 3 results
+  // Categorize results based on document thresholds
   const categorized: CategorizedFitResults = {
-    bestFit: topResults.filter(r => r.fitLabel === 'Best Fit'),
-    goodFit: topResults.filter(r => r.fitLabel === 'Good Fit'),
-    mightFit: topResults.filter(r => r.fitLabel === 'Might Fit'),
-    poorFit: [] // We don't show poor fit in the top 3
+    bestFit: results.filter(r => !r.disqualified && r.finalScore >= 0.85),
+    goodFit: results.filter(r => !r.disqualified && r.finalScore >= 0.65 && r.finalScore < 0.85),
+    mightFit: results.filter(r => !r.disqualified && r.finalScore >= 0.5 && r.finalScore < 0.65),
+    poorFit: results.filter(r => r.disqualified || r.finalScore < 0.5)
   };
 
   return categorized;
 }
 
-/**
- * Get available tail types
- */
 export function getTailTypes(): UserInput['tailType'][] {
   return ['down/tucked', 'bobbed/docked', 'straight', 'up or curly'];
 }
 
-/**
- * Get available breeds from the alias list
- */
 export function getAvailableBreeds(): string[] {
   return Object.keys(breedAliases).sort();
 }
 
-/**
- * Product types mapping
- */
+// Product types mapping
 export const PRODUCT_TYPES = {
   'RC': 'Rain Coat',
   'TW': 'Tummy Warmer', 
@@ -385,68 +418,29 @@ export const PRODUCT_TYPES = {
 
 export type ProductType = keyof typeof PRODUCT_TYPES;
 
-/**
- * Parse SKU to extract product information
- * Example: "TW-VS-XS-BG-RCB" -> { productType: 'TW', patternCode: 'VS', size: 'XS', color: 'BG', variant: 'RCB' }
- */
+// Parse SKU function for product processing
 export function parseSKU(sku: string): {
   productType: ProductType;
   patternCode: string;
   size: string;
   color: string;
-  variant: string;
+  variant?: string;
 } | null {
-  const parts = sku.split('-');
-  if (parts.length < 4) return null;
-
-  const productType = parts[0] as ProductType;
-  const patternCode = parts[1];
-  const size = parts[2];
-  const color = parts[3];
-  const variant = parts[4] || '';
-
+  const skuParts = sku.split('-');
+  if (skuParts.length < 3) return null;
+  
+  const [productType, patternCode, size, color = '', variant = ''] = skuParts;
+  
   // Validate product type
-  if (!PRODUCT_TYPES[productType]) return null;
-
+  if (!Object.keys(PRODUCT_TYPES).includes(productType)) {
+    return null;
+  }
+  
   return {
-    productType,
+    productType: productType as ProductType,
     patternCode,
     size,
     color,
-    variant
+    variant: variant || undefined
   };
-}
-
-/**
- * Generate SKU pattern for a given pattern and product type
- * Example: patternCode="VS-XS", productType="TW" -> "TW-VS-XS"
- */
-export function generateSKUPattern(patternCode: string, productType: ProductType): string {
-  return `${productType}-${patternCode}`;
-}
-
-/**
- * Check if a product SKU matches a pattern
- */
-export function doesSKUMatchPattern(sku: string, patternCode: string, productType?: ProductType): boolean {
-  const parsed = parseSKU(sku);
-  if (!parsed) return false;
-
-  // Check if pattern matches (e.g., "VS-XS" matches "VS-XS")
-  const patternMatch = parsed.patternCode === patternCode.split('-')[0] && 
-                      parsed.size === patternCode.split('-')[1];
-
-  // If product type specified, check that too
-  if (productType) {
-    return patternMatch && parsed.productType === productType;
-  }
-
-  return patternMatch;
-}
-
-/**
- * Get all product types for a given pattern
- */
-export function getProductTypesForPattern(): ProductType[] {
-  return Object.keys(PRODUCT_TYPES) as ProductType[];
 }
