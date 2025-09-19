@@ -84,6 +84,17 @@ export default function FitFinderForm({ onSubmit, isLoading = false, initialMeas
             {/* Dog Information */}
             <div className="mb-10">
               <h2 className="text-2xl font-bold text-gray-900 mb-6">Dog Information</h2>
+              <p className="text-sm text-gray-600 mb-6">
+                Every fit begins with a tape measure.{' '}
+                <a 
+                  href="https://k9apparel.com/pages/measure-dog-for-breed-specific-coats" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-brand-teal hover:text-brand-teal-dark underline font-medium"
+                >
+                  Click here for our measuring guide.
+                </a>
+              </p>
               <div className="space-y-6">
                 <div>
                   <label className="block text-sm font-semibold text-gray-800 mb-3">
@@ -99,7 +110,7 @@ export default function FitFinderForm({ onSubmit, isLoading = false, initialMeas
                     <p className="text-red-500 text-sm mt-1">{errors.breed}</p>
                   )}
                   <p className="text-xs text-gray-500 mt-2">
-                    Start typing to search breeds. Can&apos;t find yours? Select &quot;Breed Not Listed&quot;
+                    Start typing to search breeds. Can&apos;t find yours? Select &quot;Breed Not Listed&quot; or &quot;Mixed Breed&quot;
                   </p>
                 </div>
               </div>
@@ -176,22 +187,6 @@ export default function FitFinderForm({ onSubmit, isLoading = false, initialMeas
                   {errors.backLength && (
                     <p className="text-red-500 text-sm mt-1">{errors.backLength}</p>
                   )}
-                </div>
-              </div>
-
-              {/* Tip */}
-              <div className="mt-8 p-5 bg-primary/5 border border-primary/20 rounded-lg">
-                <div className="flex items-start">
-                  <div className="flex-shrink-0">
-                    <svg className="h-6 w-6 text-primary mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                  <div className="ml-4">
-                    <p className="text-base text-primary font-semibold leading-relaxed">
-                      Use a soft tape measure with your dog standing naturally for the most accurate measurements.
-                    </p>
-                  </div>
                 </div>
               </div>
             </div>

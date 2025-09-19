@@ -4,6 +4,30 @@ import { logScoreBreakdown, logFitProcess } from './fitLogger';
 // Re-export types from the main types file
 export type { UserInput, AdvancedFitResult };
 
+// Size abbreviation to full word mapping
+const SIZE_MAPPING: Record<string, string> = {
+  'XS': 'Extra Small',
+  'S': 'Small', 
+  'M': 'Medium',
+  'L': 'Large',
+  'XL': 'Extra Large'
+};
+
+/**
+ * Convert size abbreviation to full word
+ */
+export function getFullSizeName(size: string): string {
+  return SIZE_MAPPING[size] || size;
+}
+
+/**
+ * Format pattern name with full size word
+ */
+export function formatPatternName(breed: string, size: string): string {
+  const fullSize = getFullSizeName(size);
+  return `${breed} - ${fullSize}`;
+}
+
 // Breed alias mapping from the document
 const breedAliases: Record<string, string> = {
   'beagle': 'BG',
@@ -164,55 +188,94 @@ function calculateLengthScore(
   let score: number;
   let note: string;
 
+  // Enhanced logging for length matching logic
+  console.group(`📏 Length Matching Analysis (${tailType} tail)`);
+  console.log(`Dog's back length: ${userLength}"`);
+  console.log(`Pattern length: ${patternLength}"`);
+  console.log(`Length ratio: ${(lengthRatio * 100).toFixed(1)}% (pattern vs dog)`);
+
   switch (tailType) {
     case 'down/tucked':
-      // Down/Tucked Tail - Per document
-      if (lengthRatio === 1.15) {
-        // Ideal Score of 1.0 at Dog Length Input * 1.15
-        score = 1.0;
+      console.log('🎯 Down/Tucked Tail Logic:');
+      console.log('   Ideal point: Dog length × 1.15 (115%)');
+      console.log('   Scoring curve: Linear drop-off from ideal to range edges');
+      
+      // Down/Tucked Tail - Per document with proper linear drop-off
+      if (lengthRatio <= 1.05) {
+        // Below 105%: Linear drop from 0.75 at 105% to 0 at 0%
+        score = Math.max(0, 0.75 + ((lengthRatio - 1.05) / 1.05) * 0.75);
+        console.log(`📉 Below range: ${(lengthRatio * 100).toFixed(1)}% → ${(score * 100).toFixed(1)}% score (linear drop)`);
       } else if (lengthRatio >= 1.05 && lengthRatio < 1.15) {
-        // 5-15% longer: 0.75-1.0 (rising)
+        // 105-115%: Rising from 0.75 to 1.0
         score = 0.75 + ((lengthRatio - 1.05) / 0.10) * 0.25;
-      } else if (lengthRatio > 1.15 && lengthRatio <= 1.25) {
-        // 15-25% longer: 1.0-0.75 (falling)
+        console.log(`📈 Rising curve: ${(lengthRatio * 100).toFixed(1)}% → ${(score * 100).toFixed(1)}% score`);
+        console.log(`   Calculation: 0.75 + ((${lengthRatio.toFixed(3)} - 1.05) / 0.10) × 0.25 = ${score.toFixed(3)}`);
+      } else if (lengthRatio >= 1.15 && lengthRatio <= 1.25) {
+        // 115-125%: Falling from 1.0 to 0.75
         score = 1.0 - ((lengthRatio - 1.15) / 0.10) * 0.25;
+        console.log(`📉 Falling curve: ${(lengthRatio * 100).toFixed(1)}% → ${(score * 100).toFixed(1)}% score`);
+        console.log(`   Calculation: 1.0 - ((${lengthRatio.toFixed(3)} - 1.15) / 0.10) × 0.25 = ${score.toFixed(3)}`);
       } else {
-        score = 0.75;
+        // Above 125%: Linear drop from 0.75 to 0
+        score = Math.max(0, 0.75 - ((lengthRatio - 1.25) / 0.25) * 0.75);
+        console.log(`📉 Above range: ${(lengthRatio * 100).toFixed(1)}% → ${(score * 100).toFixed(1)}% score (linear drop)`);
       }
       note = "This pattern will provide some extra coverage for your pup without interfering with tail function.";
       break;
 
     case 'straight':
-      // Straight Tail - Per document
-      if (lengthRatio === 1.05) {
-        // Ideal Score of 1.0 at Dog Length Input * 1.05
-        score = 1.0;
+      console.log('🎯 Straight Tail Logic:');
+      console.log('   Ideal point: Dog length × 1.05 (105%)');
+      console.log('   Scoring curve: Linear drop-off from ideal to range edges');
+      
+      // Straight Tail - Per document with proper linear drop-off
+      if (lengthRatio <= 0.90) {
+        // Below 90%: Linear drop from 0.75 at 90% to 0 at 0%
+        score = Math.max(0, 0.75 + ((lengthRatio - 0.90) / 0.90) * 0.75);
+        console.log(`📉 Below range: ${(lengthRatio * 100).toFixed(1)}% → ${(score * 100).toFixed(1)}% score (linear drop)`);
       } else if (lengthRatio >= 0.90 && lengthRatio < 1.05) {
-        // Score of 0.75 at 90%, rising linearly to 1.0 at 105%
+        // 90-105%: Rising from 0.75 to 1.0
         score = 0.75 + ((lengthRatio - 0.90) / 0.15) * 0.25;
-      } else if (lengthRatio > 1.05 && lengthRatio <= 1.10) {
-        // Falling linearly from 1.0 to 0.75 at 110%
+        console.log(`📈 Rising curve: ${(lengthRatio * 100).toFixed(1)}% → ${(score * 100).toFixed(1)}% score`);
+        console.log(`   Calculation: 0.75 + ((${lengthRatio.toFixed(3)} - 0.90) / 0.15) × 0.25 = ${score.toFixed(3)}`);
+      } else if (lengthRatio >= 1.05 && lengthRatio <= 1.10) {
+        // 105-110%: Falling from 1.0 to 0.75
         score = 1.0 - ((lengthRatio - 1.05) / 0.05) * 0.25;
+        console.log(`📉 Falling curve: ${(lengthRatio * 100).toFixed(1)}% → ${(score * 100).toFixed(1)}% score`);
+        console.log(`   Calculation: 1.0 - ((${lengthRatio.toFixed(3)} - 1.05) / 0.05) × 0.25 = ${score.toFixed(3)}`);
       } else {
-        score = 0.75;
+        // Above 110%: Linear drop from 0.75 to 0
+        score = Math.max(0, 0.75 - ((lengthRatio - 1.10) / 0.20) * 0.75);
+        console.log(`📉 Above range: ${(lengthRatio * 100).toFixed(1)}% → ${(score * 100).toFixed(1)}% score (linear drop)`);
       }
       note = "This pattern should land at just the right spot for your pup without impeding tail function or risk of soiling.";
       break;
 
     case 'bobbed/docked':
     case 'up or curly':
-      // Docked, Bobbed, Up, or Curly Tail - Per document
-      if (lengthRatio === 0.95) {
-        // Ideal Score of 1.0 at Dog Length Input * 0.95
-        score = 1.0;
+      console.log('🎯 Docked/Bobbed/Up/Curly Tail Logic:');
+      console.log('   Ideal point: Dog length × 0.95 (95%)');
+      console.log('   Scoring curve: Linear drop-off from ideal to range edges');
+      
+      // Docked, Bobbed, Up, or Curly Tail - Per document with proper linear drop-off
+      if (lengthRatio <= 0.90) {
+        // Below 90%: Linear drop from 0.75 at 90% to 0 at 0%
+        score = Math.max(0, 0.75 + ((lengthRatio - 0.90) / 0.90) * 0.75);
+        console.log(`📉 Below range: ${(lengthRatio * 100).toFixed(1)}% → ${(score * 100).toFixed(1)}% score (linear drop)`);
       } else if (lengthRatio >= 0.90 && lengthRatio < 0.95) {
-        // Score of 0.75 at 90%, rising linearly to 1.0 at 95%
+        // 90-95%: Rising from 0.75 to 1.0
         score = 0.75 + ((lengthRatio - 0.90) / 0.05) * 0.25;
-      } else if (lengthRatio > 0.95 && lengthRatio <= 1.05) {
-        // Falling linearly from 1.0 to 0.75 at 105%
+        console.log(`📈 Rising curve: ${(lengthRatio * 100).toFixed(1)}% → ${(score * 100).toFixed(1)}% score`);
+        console.log(`   Calculation: 0.75 + ((${lengthRatio.toFixed(3)} - 0.90) / 0.05) × 0.25 = ${score.toFixed(3)}`);
+      } else if (lengthRatio >= 0.95 && lengthRatio <= 1.05) {
+        // 95-105%: Falling from 1.0 to 0.75
         score = 1.0 - ((lengthRatio - 0.95) / 0.10) * 0.25;
+        console.log(`📉 Falling curve: ${(lengthRatio * 100).toFixed(1)}% → ${(score * 100).toFixed(1)}% score`);
+        console.log(`   Calculation: 1.0 - ((${lengthRatio.toFixed(3)} - 0.95) / 0.10) × 0.25 = ${score.toFixed(3)}`);
       } else {
-        score = 0.75;
+        // Above 105%: Linear drop from 0.75 to 0
+        score = Math.max(0, 0.75 - ((lengthRatio - 1.05) / 0.20) * 0.75);
+        console.log(`📉 Above range: ${(lengthRatio * 100).toFixed(1)}% → ${(score * 100).toFixed(1)}% score (linear drop)`);
       }
       note = "This pattern should provide sufficient coverage for your pup without impeding tail function or risk of soiling.";
       break;
@@ -220,10 +283,20 @@ function calculateLengthScore(
     default:
       score = 0.75;
       note = "This pattern should provide adequate coverage for your pup.";
+      console.log('⚠️ Unknown tail type, using default score');
   }
 
   // Disqualification: Score < 0.75
   const disqualified = score < 0.75;
+  
+  console.log(`🏁 Final length score: ${(score * 100).toFixed(1)}%`);
+  if (disqualified) {
+    console.log('❌ DISQUALIFIED: Length score below 75% threshold');
+  } else {
+    console.log('✅ Length score meets minimum threshold');
+  }
+  console.groupEnd();
+
   return { score: Math.max(0, score), note, disqualified };
 }
 
@@ -283,7 +356,16 @@ export function findPatterns(
   // Get user's pattern key for breed matching
   const userPatternKey = getPatternKey(userInput.breed);
 
-  for (const pattern of allPatterns) {
+  // First filter: Only process patterns within acceptable neck range
+  const neckFilteredPatterns = allPatterns.filter(pattern => {
+    const measurements = pattern.measurements;
+    return userInput.neckCircumference >= measurements.minNeck && 
+           userInput.neckCircumference <= measurements.maxNeck;
+  });
+
+  console.log(`📏 Neck filter: ${neckFilteredPatterns.length} patterns passed neck measurement filter out of ${allPatterns.length} total patterns`);
+
+  for (const pattern of neckFilteredPatterns) {
     const measurements = pattern.measurements;
     const fitNotes: string[] = [];
     let disqualified = false;
@@ -355,8 +437,14 @@ export function findPatterns(
       neckResult.maxCombinedScore
     );
 
+    // Create pattern with formatted name
+    const patternWithFormattedName = {
+      ...pattern,
+      name: formatPatternName(pattern.category, pattern.size)
+    };
+
     const result: AdvancedFitResult = {
-      pattern,
+      pattern: patternWithFormattedName,
       finalScore: finalResult.finalScore,
       fitLabel: finalResult.fitLabel,
       neckScore: neckResult.score,
@@ -386,15 +474,18 @@ export function findPatterns(
   // Sort by final score (highest first)
   results.sort((a, b) => b.finalScore - a.finalScore);
 
+  // Limit to top 3 results only
+  const topResults = results.slice(0, 3);
+
   // Log overall process summary
-  logFitProcess(userInput, results);
+  logFitProcess(userInput, topResults);
 
   // Categorize results based on document thresholds
   const categorized: CategorizedFitResults = {
-    bestFit: results.filter(r => !r.disqualified && r.finalScore >= 0.85),
-    goodFit: results.filter(r => !r.disqualified && r.finalScore >= 0.65 && r.finalScore < 0.85),
-    mightFit: results.filter(r => !r.disqualified && r.finalScore >= 0.5 && r.finalScore < 0.65),
-    poorFit: results.filter(r => r.disqualified || r.finalScore < 0.5)
+    bestFit: topResults.filter(r => !r.disqualified && r.finalScore >= 0.85),
+    goodFit: topResults.filter(r => !r.disqualified && r.finalScore >= 0.65 && r.finalScore < 0.85),
+    mightFit: topResults.filter(r => !r.disqualified && r.finalScore >= 0.5 && r.finalScore < 0.65),
+    poorFit: topResults.filter(r => r.disqualified || r.finalScore < 0.5)
   };
 
   return categorized;

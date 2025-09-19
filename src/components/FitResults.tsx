@@ -205,31 +205,23 @@ export default function FitResults({ results, onStartOver }: FitResultsProps) {
               <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-2">{result.pattern.name}</h2>
               <p className="text-gray-600 mb-4 text-sm leading-relaxed">{result.pattern.description}</p>
               
-              {/* Score Display - Mobile Responsive with qualitative descriptions */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-                <div className="text-center bg-white/50 rounded-lg p-3">
-                  <div className={`text-lg md:text-xl font-bold ${overallFit.color}`}>{overallFit.text}</div>
-                  <div className="text-xs text-gray-600 font-medium">Overall Fit</div>
-                </div>
-                <div className="text-center bg-white/50 rounded-lg p-3">
-                  <div className={`text-sm md:text-base font-bold ${neckFit.color}`}>
-                    {neckFit.text}
+              {/* Fit Notes - Moved to replace Fit scores section */}
+              {result.fitNotes.length > 0 && (
+                <div className="bg-white/50 rounded-lg p-4">
+                  <div className="flex items-center mb-3">
+                    <CheckCircle className="h-5 w-5 mr-2 text-brand-teal" />
+                    <h4 className="font-semibold text-gray-900">Fit Notes</h4>
                   </div>
-                  <div className="text-xs text-gray-600 font-medium">Neck</div>
+                  <ul className="space-y-2">
+                    {result.fitNotes.map((note: string, noteIndex: number) => (
+                      <li key={noteIndex} className="text-sm text-gray-700 flex items-start leading-relaxed">
+                        <span className="text-brand-teal mr-2 mt-1 font-bold">•</span>
+                        {note}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
-                <div className="text-center bg-white/50 rounded-lg p-3">
-                  <div className={`text-sm md:text-base font-bold ${chestFit.color}`}>
-                    {chestFit.text}
-                  </div>
-                  <div className="text-xs text-gray-600 font-medium">Chest</div>
-                </div>
-                <div className="text-center bg-white/50 rounded-lg p-3">
-                  <div className={`text-sm md:text-base font-bold ${lengthFit.color}`}>
-                    {lengthFit.text}
-                  </div>
-                  <div className="text-xs text-gray-600 font-medium">Length</div>
-                </div>
-              </div>
+              )}
             </div>
           </div>
         </div>
@@ -299,15 +291,7 @@ export default function FitResults({ results, onStartOver }: FitResultsProps) {
                       
                       {/* Price */}
                       <div className="text-lg font-bold text-brand-teal mb-2">
-                        ${hasProducts ? displayProduct.price : result.pattern.price || '39.99'}
-                        <span className="text-xs text-gray-500 ml-1 font-normal">
-                          {hasProducts ? displayProduct.currencyCode || 'USD' : 'USD'}
-                        </span>
-                        {hasProducts && (
-                          <div className={`text-xs mt-1 font-medium ${displayProduct.availableForSale ? 'text-green-600' : 'text-red-600'}`}>
-                            {displayProduct.availableForSale ? '✓ In Stock' : '✗ Out of Stock'}
-                          </div>
-                        )}
+                        From ${hasProducts ? parseFloat(displayProduct.price).toFixed(2) : (result.pattern.price || 39.99).toFixed(2)} USD
                       </div>
 
                       {/* Spacer to push button to bottom */}
@@ -347,23 +331,6 @@ export default function FitResults({ results, onStartOver }: FitResultsProps) {
             </div>
           </div>
 
-          {/* Fit Notes */}
-          {result.fitNotes.length > 0 && (
-            <div className="bg-gradient-to-r from-brand-teal/5 to-primary/5 rounded-lg p-4 md:p-5 border border-brand-teal/10">
-              <div className="flex items-center mb-3">
-                <CheckCircle className="h-5 w-5 mr-2 text-brand-teal" />
-                <h4 className="font-semibold text-gray-900">Fit Notes</h4>
-              </div>
-              <ul className="space-y-2">
-                {result.fitNotes.map((note: string, noteIndex: number) => (
-                  <li key={noteIndex} className="text-sm text-gray-700 flex items-start leading-relaxed">
-                    <span className="text-brand-teal mr-2 mt-1 font-bold">•</span>
-                    {note}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
 
           {/* Debug Info - only show in development */}
           {process.env.NODE_ENV === 'development' && (

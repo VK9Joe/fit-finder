@@ -92,26 +92,68 @@ export function logScoreBreakdown(breakdown: ScoreBreakdown): void {
   console.log(`Length ratio: ${(lengthRatio * 100).toFixed(1)}% (pattern vs dog)`);
   console.log(`Tail type: ${userInput.tailType}`);
   
-  // Explain ideal ranges based on tail type
-  let idealRange = '';
+  // Explain ideal ranges and scoring logic based on tail type
+  console.log('\n🎯 Length Matching Logic:');
   switch (userInput.tailType) {
     case 'down/tucked':
-      idealRange = '105-125% (pattern can be longer)';
+      console.log('   Ideal point: Dog length × 1.15 (115%)');
+      console.log('   Scoring curve: 105-115% (rising), 115-125% (falling)');
+      console.log('   Logic: Dogs with down/tucked tails can tolerate longer garments');
       break;
     case 'straight':
-      idealRange = '90-110% (near dog\'s length)';
+      console.log('   Ideal point: Dog length × 1.05 (105%)');
+      console.log('   Scoring curve: 90-105% (rising), 105-110% (falling)');
+      console.log('   Logic: Length must be precise to avoid interference or soiling');
       break;
     case 'bobbed/docked':
     case 'up or curly':
-      idealRange = '90-105% (slightly shorter is ok)';
+      console.log('   Ideal point: Dog length × 0.95 (95%)');
+      console.log('   Scoring curve: 90-95% (rising), 95-105% (falling)');
+      console.log('   Logic: Coverage preferred, but garment shouldn\'t extend too far');
       break;
   }
   
-  console.log(`Ideal range for ${userInput.tailType} tail: ${idealRange}`);
+  // Show which scoring zone we're in
+  let scoringZone = '';
+  if (userInput.tailType === 'down/tucked') {
+    if (lengthRatio >= 1.05 && lengthRatio < 1.15) {
+      scoringZone = 'Rising curve (105-115%)';
+    } else if (lengthRatio > 1.15 && lengthRatio <= 1.25) {
+      scoringZone = 'Falling curve (115-125%)';
+    } else if (lengthRatio === 1.15) {
+      scoringZone = 'Perfect ideal point (115%)';
+    } else {
+      scoringZone = 'Outside ideal range (minimum score)';
+    }
+  } else if (userInput.tailType === 'straight') {
+    if (lengthRatio >= 0.90 && lengthRatio < 1.05) {
+      scoringZone = 'Rising curve (90-105%)';
+    } else if (lengthRatio > 1.05 && lengthRatio <= 1.10) {
+      scoringZone = 'Falling curve (105-110%)';
+    } else if (lengthRatio === 1.05) {
+      scoringZone = 'Perfect ideal point (105%)';
+    } else {
+      scoringZone = 'Outside ideal range (minimum score)';
+    }
+  } else if (userInput.tailType === 'bobbed/docked' || userInput.tailType === 'up or curly') {
+    if (lengthRatio >= 0.90 && lengthRatio < 0.95) {
+      scoringZone = 'Rising curve (90-95%)';
+    } else if (lengthRatio > 0.95 && lengthRatio <= 1.05) {
+      scoringZone = 'Falling curve (95-105%)';
+    } else if (lengthRatio === 0.95) {
+      scoringZone = 'Perfect ideal point (95%)';
+    } else {
+      scoringZone = 'Outside ideal range (minimum score)';
+    }
+  }
+  
+  console.log(`\n📍 Current position: ${scoringZone}`);
   console.log(`✅ Length score: ${(lengthScore * 100).toFixed(1)}%`);
   
   if (lengthScore < 0.75) {
-    console.log('❌ DISQUALIFIED: Length score below minimum threshold');
+    console.log('❌ DISQUALIFIED: Length score below 75% threshold');
+  } else {
+    console.log('✅ Length score meets minimum threshold');
   }
   console.groupEnd();
   
