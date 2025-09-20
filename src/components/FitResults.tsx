@@ -100,14 +100,22 @@ interface FitResultsProps {
       }>>;
     }>;
   };
+  measurements?: {
+    breed: string;
+    neckCircumference: number;
+    chestCircumference: number;
+    backLength: number;
+    tailType: string;
+    chondrodystrophic: boolean;
+  };
   onStartOver: () => void;
 }
 
-export default function FitResults({ results, onStartOver }: FitResultsProps) {
-  // View product functionality - redirects to Shopify with pre-selected variant
+export default function FitResults({ results, measurements, onStartOver }: FitResultsProps) {
+  // View product functionality - redirects to Shopify with pre-selected variant and measurements
   const viewProduct = (productHandle: string, variantId: string, productType: ProductType) => {
     try {
-      const productUrl = buildShopifyProductUrl(productHandle, variantId, productType);
+      const productUrl = buildShopifyProductUrl(productHandle, variantId, productType, measurements);
       // Open in new tab to maintain user's place in the fit finder
       window.open(productUrl, '_blank', 'noopener,noreferrer');
     } catch (error) {

@@ -19,6 +19,8 @@ A sophisticated web application that helps customers find the perfect dog coat b
 ### 🛒 E-commerce Integration
 - **Direct Cart Integration**: One-click add to cart with fit metadata
 - **Shopify Compatible**: Ready for Shopify store integration
+- **Iframe Embedding**: Seamless iframe integration with automatic height adjustment
+- **No Scrollbars**: Iframe height matches content perfectly
 - **Product Deep Links**: Direct links to specific product pages
 - **Fit Guarantee Badge**: Trust indicators for customer confidence
 
@@ -113,9 +115,15 @@ Optional:
    - Update product URLs in pattern data
    - Ensure product IDs match Shopify variants
 
-3. **Test Cart Integration**
+3. **Iframe Integration**
+   - Use the provided iframe code in your Shopify theme
+   - Include the iframe height handler script
+   - Test with the provided test page (`/test-iframe.html`)
+
+4. **Test Cart Integration**
    - Verify add-to-cart functionality
    - Test checkout flow completion
+   - Verify iframe height adjusts automatically
 
 ## Customization
 

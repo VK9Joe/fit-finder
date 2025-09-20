@@ -19,12 +19,67 @@ Add this code to your Shopify template (e.g., in a page template or custom secti
     id="fit-finder-iframe"
     src="https://your-fit-finder-domain.com"
     width="100%" 
-    height="800"
+    height="400"
     frameborder="0"
-    style="border: none; border-radius: 8px;"
+    style="border: none; border-radius: 8px; overflow: hidden;"
     loading="lazy">
   </iframe>
 </div>
+
+<!-- Include the iframe height handler script -->
+<script src="https://your-fit-finder-domain.com/iframe-height-handler.js"></script>
+
+<!-- Measurements Auto-Population Script -->
+<script>
+// Auto-populate special instructions with measurements from fit-finder
+document.addEventListener('DOMContentLoaded', function() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const measurementsParam = urlParams.get('measurements');
+  
+  if (measurementsParam) {
+    try {
+      const measurements = JSON.parse(decodeURIComponent(measurementsParam));
+      
+      // Try multiple selectors for different themes
+      const selectors = [
+        'textarea[name*="special instructions" i]',
+        'textarea[name*="special instructions for seller" i]',
+        'textarea[name*="note" i]',
+        'textarea[name*="message" i]',
+        'textarea[name*="instructions" i]',
+        'textarea[name*="comment" i]',
+        'textarea[name*="order note" i]',
+        'textarea[name*="customer note" i]'
+      ];
+      
+      let instructionsField = null;
+      for (const selector of selectors) {
+        instructionsField = document.querySelector(selector);
+        if (instructionsField) break;
+      }
+      
+      if (instructionsField) {
+        const instructions = `Dog Measurements from Fit-Finder:
+Breed: ${measurements.breed}
+Neck: ${measurements.neck}" 
+Chest: ${measurements.chest}"
+Length: ${measurements.length}"
+Tail: ${measurements.tail}
+Chondrodystrophic: ${measurements.chondro ? 'Yes' : 'No'}
+
+Please use these measurements for sizing.`;
+        
+        instructionsField.value = instructions;
+        instructionsField.dispatchEvent(new Event('change', { bubbles: true }));
+        
+        console.log('Fit-Finder: Measurements auto-populated in special instructions');
+      }
+    } catch (error) {
+      console.log('Fit-Finder: Error parsing measurements:', error);
+    }
+  }
+});
+</script>
 
 <style>
 .fit-finder-container {
@@ -33,9 +88,14 @@ Add this code to your Shopify template (e.g., in a page template or custom secti
   padding: 20px;
 }
 
+#fit-finder-iframe {
+  min-height: 400px;
+  transition: height 0.3s ease-in-out;
+}
+
 @media (max-width: 768px) {
-  #fit-finder-iframe {
-    height: 600px;
+  .fit-finder-container {
+    padding: 10px;
   }
 }
 </style>
@@ -130,9 +190,9 @@ Create a new page template in your Shopify theme:
       id="fit-finder-iframe"
       src="https://your-fit-finder-domain.com"
       width="100%" 
-      height="900"
+      height="400"
       frameborder="0"
-      style="border: none; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);"
+      style="border: none; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); overflow: hidden;"
       loading="lazy">
       <p>Your browser doesn't support iframes. <a href="https://your-fit-finder-domain.com" target="_blank">Click here to open the fit finder</a>.</p>
     </iframe>
@@ -149,6 +209,8 @@ Create a new page template in your Shopify theme:
 
 #fit-finder-iframe {
   background: white;
+  min-height: 400px;
+  transition: height 0.3s ease-in-out;
 }
 
 @media (max-width: 768px) {
@@ -156,12 +218,65 @@ Create a new page template in your Shopify theme:
     padding: 10px;
     margin: 20px 0;
   }
-  
-  #fit-finder-iframe {
-    height: 700px;
-  }
 }
 </style>
+
+<!-- Measurements Auto-Population Script -->
+<script>
+// Auto-populate special instructions with measurements from fit-finder
+document.addEventListener('DOMContentLoaded', function() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const measurementsParam = urlParams.get('measurements');
+  
+  if (measurementsParam) {
+    try {
+      const measurements = JSON.parse(decodeURIComponent(measurementsParam));
+      
+      // Try multiple selectors for different themes
+      const selectors = [
+        'textarea[name*="special instructions" i]',
+        'textarea[name*="special instructions for seller" i]',
+        'textarea[name*="note" i]',
+        'textarea[name*="message" i]',
+        'textarea[name*="instructions" i]',
+        'textarea[name*="comment" i]',
+        'textarea[name*="order note" i]',
+        'textarea[name*="customer note" i]'
+      ];
+      
+      let instructionsField = null;
+      for (const selector of selectors) {
+        instructionsField = document.querySelector(selector);
+        if (instructionsField) break;
+      }
+      
+      if (instructionsField) {
+        const instructions = `Dog Measurements from Fit-Finder:
+Breed: ${measurements.breed}
+Neck: ${measurements.neck}" 
+Chest: ${measurements.chest}"
+Length: ${measurements.length}"
+Tail: ${measurements.tail}
+Chondrodystrophic: ${measurements.chondro ? 'Yes' : 'No'}
+
+Please use these measurements for sizing.`;
+        
+        instructionsField.value = instructions;
+        instructionsField.dispatchEvent(new Event('change', { bubbles: true }));
+        
+        // Optional: Scroll to the field to show it's been populated
+        instructionsField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        
+        console.log('Fit-Finder: Measurements auto-populated in special instructions');
+      } else {
+        console.log('Fit-Finder: Special instructions field not found');
+      }
+    } catch (error) {
+      console.log('Fit-Finder: Error parsing measurements:', error);
+    }
+  }
+});
+</script>
 
 <!-- Cart Integration Script -->
 <script>
@@ -202,6 +317,31 @@ window.addEventListener('message', function(event) {
    - URL: `/pages/fit-finder`
 
 ## How It Works
+
+### Measurements Auto-Population
+
+The fit-finder app automatically includes user measurements in product URLs, which can be used to populate the "special instructions for seller" field:
+
+1. **URL Parameters**: Measurements are passed as JSON in the URL
+2. **Auto-Population**: JavaScript detects and populates the special instructions field
+3. **Formatted Display**: Measurements are displayed in a clear, readable format
+4. **Theme Compatible**: Works with most Shopify themes
+
+### Iframe Height Management
+
+The fit-finder app automatically adjusts its iframe height to match the content, eliminating scrollbars:
+
+1. **Automatic Height Detection**: The app uses ResizeObserver to detect content changes
+2. **Parent Communication**: Height updates are sent to the parent window via postMessage
+3. **Smooth Transitions**: Height changes are animated for a professional appearance
+4. **Responsive Design**: Height adjusts automatically on window resize
+
+**Key Features:**
+- No scrollbars in the iframe
+- Smooth height transitions (0.3s ease-in-out)
+- Minimum height of 400px for better UX
+- Automatic height updates on content changes
+- Responsive to parent window resize
 
 ### Cart Addition Process
 

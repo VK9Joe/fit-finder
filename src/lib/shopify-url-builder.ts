@@ -41,18 +41,42 @@ function extractVariantId(variantId: string): string {
  * @param productHandle - The product handle (slug)
  * @param variantId - The variant ID (can be GID or numeric)
  * @param productType - The product type to determine collection
+ * @param measurements - Optional measurements to include in URL
  * @returns Complete Shopify product URL
  */
 export function buildShopifyProductUrl(
   productHandle: string,
   variantId: string,
-  productType: ProductType
+  productType: ProductType,
+  measurements?: {
+    breed: string;
+    neckCircumference: number;
+    chestCircumference: number;
+    backLength: number;
+    tailType: string;
+    chondrodystrophic: boolean;
+  }
 ): string {
   const storeUrl = getStoreUrl();
   const collectionPath = COLLECTION_PATHS[productType];
   const numericVariantId = extractVariantId(variantId);
   
-  return `https://${storeUrl}/collections/${collectionPath}/products/${productHandle}?variant=${numericVariantId}`;
+  let url = `https://${storeUrl}/collections/${collectionPath}/products/${productHandle}?variant=${numericVariantId}`;
+  
+  // Add measurements as URL parameters if provided
+  if (measurements) {
+    const measurementsParam = JSON.stringify({
+      breed: measurements.breed,
+      neck: measurements.neckCircumference,
+      chest: measurements.chestCircumference,
+      length: measurements.backLength,
+      tail: measurements.tailType,
+      chondro: measurements.chondrodystrophic
+    });
+    url += `&measurements=${encodeURIComponent(measurementsParam)}`;
+  }
+  
+  return url;
 }
 
 /**

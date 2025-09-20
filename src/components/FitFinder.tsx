@@ -6,6 +6,7 @@ import { UserInput } from '@/types';
 import { findPatterns } from '@/utils/patternFinder';
 import { getTop3PatternsWithProducts } from '@/lib/patternProducts';
 import { patternsFromCsv } from '@/data/patternsFromCsv';
+import { useIframeHeight, triggerHeightUpdate } from '@/hooks/useIframeHeight';
 import FitFinderForm from './FitFinderForm';
 import FitResults from './FitResults';
 
@@ -14,6 +15,7 @@ type AppState = 'form' | 'loading' | 'results';
 export default function FitFinder() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const containerRef = useIframeHeight();
   
   const [appState, setAppState] = useState<AppState>('form');
   const [enhancedResults, setEnhancedResults] = useState<{
@@ -184,10 +186,20 @@ export default function FitFinder() {
       const enhanced = await getTop3PatternsWithProducts(categorizedResults);
       setEnhancedResults(enhanced);
       setAppState('results');
+      
+      // Trigger height update after content changes
+      setTimeout(() => {
+        triggerHeightUpdate();
+      }, 100);
     } catch (error) {
       console.error('Error getting fit results:', error);
       setEnhancedResults(null);
       setAppState('results');
+      
+      // Trigger height update even on error
+      setTimeout(() => {
+        triggerHeightUpdate();
+      }, 100);
     }
   };
 
@@ -202,11 +214,16 @@ export default function FitFinder() {
     setAppState('form');
     setLastMeasurements(null);
     setEnhancedResults(null);
+    
+    // Trigger height update after state change
+    setTimeout(() => {
+      triggerHeightUpdate();
+    }, 100);
   };
 
   // Regular layout
   return (
-    <div className="relative">
+    <div ref={containerRef} className="relative w-full">
       {/* Hero Section - Always visible */}
       <div className="relative overflow-hidden">
         {/* Hero Background Image */}
@@ -257,6 +274,7 @@ export default function FitFinder() {
         {appState === 'results' && (
           <FitResults
             results={enhancedResults || { bestFit: [], goodFit: [], mightFit: [] }}
+            measurements={lastMeasurements || undefined}
             onStartOver={handleStartOver}
           />
         )}
