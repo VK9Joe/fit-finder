@@ -74,6 +74,10 @@ export function buildShopifyProductUrl(
       chondro: measurements.chondrodystrophic
     });
     url += `&measurements=${encodeURIComponent(measurementsParam)}`;
+    
+    // Add product information to URL
+    url += `&product=${encodeURIComponent(productHandle)}`;
+    url += `&size=${encodeURIComponent(numericVariantId)}`;
   }
   
   return url;
