@@ -35,7 +35,7 @@ const nextConfig: NextConfig = {
           },
           {
             key: 'Content-Security-Policy',
-            value: "frame-ancestors 'self' https://k9apparel.com https://*.k9apparel.com;",
+            value: "frame-ancestors 'self' https://k9apparel.com https://*.k9apparel.com https://admin.shopify.com https://voyagers-k9-apparel.myshopify.com;",
           },
           {
             key: 'X-Content-Type-Options',
@@ -57,7 +57,7 @@ const nextConfig: NextConfig = {
           },
           {
             key: 'Content-Security-Policy',
-            value: "frame-ancestors https://k9apparel.com https://*.k9apparel.com;",
+            value: "frame-ancestors https://k9apparel.com https://*.k9apparel.com https://admin.shopify.com https://voyagers-k9-apparel.myshopify.com;",
           },
         ],
       },
