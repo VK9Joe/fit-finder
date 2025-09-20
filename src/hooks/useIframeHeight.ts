@@ -22,12 +22,12 @@ export function useIframeHeight() {
     const height = containerRef.current.scrollHeight;
     
     // Only send height update if it's significantly different (more than 100px)
-    const lastHeight = (window as any).lastIframeHeight || 0;
+    const lastHeight = (window as Window & { lastIframeHeight?: number }).lastIframeHeight || 0;
     if (Math.abs(height - lastHeight) < 100) {
       return;
     }
     
-    (window as any).lastIframeHeight = height;
+    (window as Window & { lastIframeHeight?: number }).lastIframeHeight = height;
     
     // Send height to parent window
     window.parent.postMessage({

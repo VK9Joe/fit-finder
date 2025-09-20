@@ -122,7 +122,7 @@ const patterns = data.map((row, index) => {
     productUrl: `/products/${patternCode.toLowerCase()}`,
     price: calculatePrice(category, size),
     imageUrl: `/images/${patternCode.toLowerCase()}.jpg`,
-    description: generateDescription(categoryName, size),
+    description: generateDescription(categoryName),
     features: generateFeatures(categoryName),
     targetBreeds: generateTargetBreeds(category)
   };
@@ -146,7 +146,7 @@ function calculatePrice(category, size) {
   return Math.round((basePrice * multiplier) * 100) / 100;
 }
 
-function generateDescription(categoryName, _size) {
+function generateDescription(categoryName) {
   // Generate breed-specific descriptions
   return `Specialized protection designed specifically for ${categoryName} breeds. This pattern is tailored to the unique body proportions and characteristics of ${categoryName}s, ensuring optimal fit and comfort.`;
 }

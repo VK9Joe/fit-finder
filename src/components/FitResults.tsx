@@ -193,11 +193,6 @@ export default function FitResults({ results, measurements, onStartOver }: FitRe
     // Use the global index directly as ranking (1-based)
     const ranking = globalIndex + 1;
 
-    const overallFit = getScoreDescription(result.finalScore);
-    const neckFit = getScoreDescription(result.neckScore);
-    const chestFit = getScoreDescription(result.chestScore);
-    const lengthFit = getScoreDescription(result.lengthScore);
-
     return (
       <div key={result.pattern.id} className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden hover:shadow-xl transition-all duration-300 mt-16">
         {/* Pattern Header */}
