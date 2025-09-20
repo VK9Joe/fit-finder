@@ -16,18 +16,26 @@ export function useIframeHeight() {
       return;
     }
 
-    const updateHeight = () => {
-      if (!containerRef.current) return;
+  const updateHeight = () => {
+    if (!containerRef.current) return;
 
-      const height = containerRef.current.scrollHeight;
-      
-      // Send height to parent window
-      window.parent.postMessage({
-        type: 'IFRAME_HEIGHT_UPDATE',
-        height: height,
-        timestamp: Date.now()
-      }, '*');
-    };
+    const height = containerRef.current.scrollHeight;
+    
+    // Only send height update if it's significantly different (more than 100px)
+    const lastHeight = (window as any).lastIframeHeight || 0;
+    if (Math.abs(height - lastHeight) < 100) {
+      return;
+    }
+    
+    (window as any).lastIframeHeight = height;
+    
+    // Send height to parent window
+    window.parent.postMessage({
+      type: 'IFRAME_HEIGHT_UPDATE',
+      height: height,
+      timestamp: Date.now()
+    }, '*');
+  };
 
     // Initial height update
     updateHeight();
@@ -69,17 +77,41 @@ export function useIframeHeight() {
 
     // Update height when content changes (for dynamic content)
     const handleContentChange = () => {
+      // Check if any dropdowns are open before updating height
+      const openDropdowns = document.querySelectorAll('[data-state="open"]');
+      if (openDropdowns.length > 0) {
+        console.log('Dropdown open, skipping height update');
+        return;
+      }
       setTimeout(updateHeight, 200);
     };
 
     // Listen for custom events that indicate content changes
     window.addEventListener('contentChanged', handleContentChange);
+    
+    // Listen for dropdown state changes
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.type === 'attributes' && mutation.attributeName === 'data-state') {
+          const target = mutation.target as HTMLElement;
+          if (target.getAttribute('data-state') === 'closed') {
+            // Dropdown closed, update height after a delay
+            setTimeout(updateHeight, 300);
+          }
+        }
+      });
+    });
+    
+    // Observe dropdown elements
+    const dropdownElements = document.querySelectorAll('[data-state]');
+    dropdownElements.forEach(el => observer.observe(el, { attributes: true }));
 
     // Cleanup
     return () => {
       if (resizeObserverRef.current) {
         resizeObserverRef.current.disconnect();
       }
+      observer.disconnect();
       window.removeEventListener('resize', handleResize);
       window.removeEventListener('message', handleParentResize);
       window.removeEventListener('message', handleHeightRequest);

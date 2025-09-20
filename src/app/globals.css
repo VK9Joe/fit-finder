@@ -61,6 +61,16 @@ iframe {
   overflow: hidden;
 }
 
+/* Prevent scroll jumping when iframe resizes */
+.fit-finder-container {
+  scroll-behavior: auto !important;
+}
+
+/* Smooth transitions for iframe height changes */
+#fit-finder-iframe {
+  transition: height 0.2s ease-out !important;
+}
+
 /* Custom utilities */
 .line-clamp-1 {
   overflow: hidden;
