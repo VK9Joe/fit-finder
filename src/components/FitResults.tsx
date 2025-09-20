@@ -113,10 +113,10 @@ interface FitResultsProps {
 
 export default function FitResults({ results, measurements, onStartOver }: FitResultsProps) {
   // View product functionality - redirects to Shopify with pre-selected variant and measurements
-  const viewProduct = (productHandle: string, variantId: string, productType: ProductType, fitLabel?: string) => {
+  const viewProduct = (productHandle: string, variantId: string, productType: ProductType, patternName?: string) => {
     try {
       // Extract size from fitLabel (e.g., "Medium - Good Fit" -> "Medium")
-      const size = fitLabel ? fitLabel.split(' - ')[0] : undefined;
+      const size = patternName ? patternName.split(' - ')[1] : undefined;
       
       const productUrl = buildShopifyProductUrl(productHandle, variantId, productType, measurements, size);
       // Open in new tab to maintain user's place in the fit finder
@@ -308,7 +308,7 @@ export default function FitResults({ results, measurements, onStartOver }: FitRe
                         <Button 
                           size="sm" 
                           className="w-full text-xs py-2.5 mt-3 bg-brand-teal hover:bg-brand-teal-dark text-white font-medium rounded-lg transition-all duration-200 hover:scale-105 active:scale-95"
-                          onClick={() => viewProduct(displayProduct.handle, displayProduct.variant.id, type as ProductType, result.fitLabel)}
+                          onClick={() => viewProduct(displayProduct.handle, displayProduct.variant.id, type as ProductType, result.pattern.name)}
                           disabled={!displayProduct.availableForSale}
                         >
                           {displayProduct.availableForSale ? (
