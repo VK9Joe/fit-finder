@@ -42,6 +42,7 @@ function extractVariantId(variantId: string): string {
  * @param variantId - The variant ID (can be GID or numeric)
  * @param productType - The product type to determine collection
  * @param measurements - Optional measurements to include in URL
+ * @param size - Optional size name (e.g., "Medium", "Large") - extracted from fitLabel
  * @returns Complete Shopify product URL
  */
 export function buildShopifyProductUrl(
@@ -55,7 +56,8 @@ export function buildShopifyProductUrl(
     backLength: number;
     tailType: string;
     chondrodystrophic: boolean;
-  }
+  },
+  size?: string
 ): string {
   const storeUrl = getStoreUrl();
   const collectionPath = COLLECTION_PATHS[productType];
@@ -77,7 +79,10 @@ export function buildShopifyProductUrl(
     
     // Add product information to URL
     url += `&product=${encodeURIComponent(productHandle)}`;
-    url += `&size=${encodeURIComponent(numericVariantId)}`;
+    
+    if (size) {
+      url += `&size=${encodeURIComponent(size)}`;
+    }
   }
   
   return url;
