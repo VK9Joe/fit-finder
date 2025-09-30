@@ -205,22 +205,25 @@ function calculateLengthScore(
         // Below 105%: Linear drop from 0.75 at 105% to 0 at 0%
         score = Math.max(0, 0.75 + ((lengthRatio - 1.05) / 1.05) * 0.75);
         console.log(`📉 Below range: ${(lengthRatio * 100).toFixed(1)}% → ${(score * 100).toFixed(1)}% score (linear drop)`);
+        note = "The length on this pattern will provide some extra coverage beyond your pup's tailset without interfering with tail function or risk of soiling.";
       } else if (lengthRatio >= 1.05 && lengthRatio < 1.15) {
-        // 105-115%: Rising from 0.75 to 1.0
+        // 105-115%: Rising from 0.75 to 1.0 (5-15% longer)
         score = 0.75 + ((lengthRatio - 1.05) / 0.10) * 0.25;
         console.log(`📈 Rising curve: ${(lengthRatio * 100).toFixed(1)}% → ${(score * 100).toFixed(1)}% score`);
         console.log(`   Calculation: 0.75 + ((${lengthRatio.toFixed(3)} - 1.05) / 0.10) × 0.25 = ${score.toFixed(3)}`);
+        note = "The length on this pattern will provide some extra coverage beyond your pup's tailset without interfering with tail function or risk of soiling.";
       } else if (lengthRatio >= 1.15 && lengthRatio <= 1.25) {
-        // 115-125%: Falling from 1.0 to 0.75
+        // 115-125%: Falling from 1.0 to 0.75 (15-25% longer)
         score = 1.0 - ((lengthRatio - 1.15) / 0.10) * 0.25;
         console.log(`📉 Falling curve: ${(lengthRatio * 100).toFixed(1)}% → ${(score * 100).toFixed(1)}% score`);
         console.log(`   Calculation: 1.0 - ((${lengthRatio.toFixed(3)} - 1.15) / 0.10) × 0.25 = ${score.toFixed(3)}`);
+        note = "The length on this pattern will provide excellent additional coverage beyond your pup's tailset without interfering with tail function or risk of soiling.";
       } else {
         // Above 125%: Linear drop from 0.75 to 0
         score = Math.max(0, 0.75 - ((lengthRatio - 1.25) / 0.25) * 0.75);
         console.log(`📉 Above range: ${(lengthRatio * 100).toFixed(1)}% → ${(score * 100).toFixed(1)}% score (linear drop)`);
+        note = "The length on this pattern will provide excellent additional coverage beyond your pup's tailset without interfering with tail function or risk of soiling.";
       }
-      note = "This pattern will provide some extra coverage for your pup without interfering with tail function.";
       break;
 
     case 'straight':
@@ -233,22 +236,31 @@ function calculateLengthScore(
         // Below 90%: Linear drop from 0.75 at 90% to 0 at 0%
         score = Math.max(0, 0.75 + ((lengthRatio - 0.90) / 0.90) * 0.75);
         console.log(`📉 Below range: ${(lengthRatio * 100).toFixed(1)}% → ${(score * 100).toFixed(1)}% score (linear drop)`);
-      } else if (lengthRatio >= 0.90 && lengthRatio < 1.05) {
-        // 90-105%: Rising from 0.75 to 1.0
+        note = "The length on this pattern is slightly short for your pup but within the acceptable range. It should land at a good spot near your pup's tail and provide excellent coverage for the shoulders and back.";
+      } else if (lengthRatio >= 0.90 && lengthRatio < 0.95) {
+        // 90-95%: Rising from 0.75 towards 1.0
         score = 0.75 + ((lengthRatio - 0.90) / 0.15) * 0.25;
         console.log(`📈 Rising curve: ${(lengthRatio * 100).toFixed(1)}% → ${(score * 100).toFixed(1)}% score`);
         console.log(`   Calculation: 0.75 + ((${lengthRatio.toFixed(3)} - 0.90) / 0.15) × 0.25 = ${score.toFixed(3)}`);
-      } else if (lengthRatio >= 1.05 && lengthRatio <= 1.10) {
-        // 105-110%: Falling from 1.0 to 0.75
+        note = "The length on this pattern is slightly short for your pup but within the acceptable range. It should land at a good spot near your pup's tail and provide excellent coverage for the shoulders and back.";
+      } else if (lengthRatio >= 0.95 && lengthRatio <= 1.05) {
+        // 95-105%: Ideal range
+        score = 0.75 + ((lengthRatio - 0.90) / 0.15) * 0.25;
+        console.log(`📈 Ideal range: ${(lengthRatio * 100).toFixed(1)}% → ${(score * 100).toFixed(1)}% score`);
+        console.log(`   Calculation: 0.75 + ((${lengthRatio.toFixed(3)} - 0.90) / 0.15) × 0.25 = ${score.toFixed(3)}`);
+        note = "The length on this pattern is ideal for your pup. Expect it to land very close to your pup's tailset, provide excellent coverage for the shoulders and back, and not impede tail function or be at risk of soiling.";
+      } else if (lengthRatio > 1.05 && lengthRatio <= 1.10) {
+        // 105-110%: Falling from peak to 0.75
         score = 1.0 - ((lengthRatio - 1.05) / 0.05) * 0.25;
         console.log(`📉 Falling curve: ${(lengthRatio * 100).toFixed(1)}% → ${(score * 100).toFixed(1)}% score`);
         console.log(`   Calculation: 1.0 - ((${lengthRatio.toFixed(3)} - 1.05) / 0.05) × 0.25 = ${score.toFixed(3)}`);
+        note = "The length on this pattern is slightly long for your pup, but still within the acceptable range. It should not impede tail function or be at risk of soiling.";
       } else {
         // Above 110%: Linear drop from 0.75 to 0
         score = Math.max(0, 0.75 - ((lengthRatio - 1.10) / 0.20) * 0.75);
         console.log(`📉 Above range: ${(lengthRatio * 100).toFixed(1)}% → ${(score * 100).toFixed(1)}% score (linear drop)`);
+        note = "The length on this pattern is slightly long for your pup, but still within the acceptable range. It should not impede tail function or be at risk of soiling.";
       }
-      note = "This pattern should land at just the right spot for your pup without impeding tail function or risk of soiling.";
       break;
 
     case 'bobbed/docked':
@@ -262,22 +274,25 @@ function calculateLengthScore(
         // Below 90%: Linear drop from 0.75 at 90% to 0 at 0%
         score = Math.max(0, 0.75 + ((lengthRatio - 0.90) / 0.90) * 0.75);
         console.log(`📉 Below range: ${(lengthRatio * 100).toFixed(1)}% → ${(score * 100).toFixed(1)}% score (linear drop)`);
+        note = "The length of this pattern is ideal for your pup's tail type. It will provide full coverage for your pup's shoulders and back without impeding tail function or risk of soiling.";
       } else if (lengthRatio >= 0.90 && lengthRatio < 0.95) {
         // 90-95%: Rising from 0.75 to 1.0
         score = 0.75 + ((lengthRatio - 0.90) / 0.05) * 0.25;
         console.log(`📈 Rising curve: ${(lengthRatio * 100).toFixed(1)}% → ${(score * 100).toFixed(1)}% score`);
         console.log(`   Calculation: 0.75 + ((${lengthRatio.toFixed(3)} - 0.90) / 0.05) × 0.25 = ${score.toFixed(3)}`);
+        note = "The length of this pattern is ideal for your pup's tail type. It will provide full coverage for your pup's shoulders and back without impeding tail function or risk of soiling.";
       } else if (lengthRatio >= 0.95 && lengthRatio <= 1.05) {
         // 95-105%: Falling from 1.0 to 0.75
         score = 1.0 - ((lengthRatio - 0.95) / 0.10) * 0.25;
         console.log(`📉 Falling curve: ${(lengthRatio * 100).toFixed(1)}% → ${(score * 100).toFixed(1)}% score`);
         console.log(`   Calculation: 1.0 - ((${lengthRatio.toFixed(3)} - 0.95) / 0.10) × 0.25 = ${score.toFixed(3)}`);
+        note = "The length of this pattern is at the longer end of the acceptable range for your pup's tail type. It will provide full coverage for your pup's shoulders and back without impeding tail function or risk of soiling.";
       } else {
         // Above 105%: Linear drop from 0.75 to 0
         score = Math.max(0, 0.75 - ((lengthRatio - 1.05) / 0.20) * 0.75);
         console.log(`📉 Above range: ${(lengthRatio * 100).toFixed(1)}% → ${(score * 100).toFixed(1)}% score (linear drop)`);
+        note = "The length of this pattern is at the longer end of the acceptable range for your pup's tail type. It will provide full coverage for your pup's shoulders and back without impeding tail function or risk of soiling.";
       }
-      note = "This pattern should provide sufficient coverage for your pup without impeding tail function or risk of soiling.";
       break;
 
     default:
@@ -425,7 +440,19 @@ export function findPatterns(
 
     // Add chondrodystrophic note if applicable
     if (userInput.chondrodystrophic) {
-      fitNotes.push("Our patterns will generally fit the body/torso of chondrodystrophic pups, but in some cases the raincoat skirting may be too long and cause movement restrictions. We encourage you to try on your new product and promptly initiate a return if it does not fit.");
+      fitNotes.push("Our patterns will generally fit the body/torso of chondrodystrophic (short legged) pups, but in some cases the raincoat skirting may be too long and cause movement restrictions. We encourage you to try on your new product and promptly initiate a return if it does not fit.");
+    }
+
+    // Add special note for tucked tail breed patterns
+    const tuckedTailPatterns = [
+      'GH-S', 'GH-M', 'GH-L', 'GH-XL',
+      'IG-S', 'IG-M', 'IG-L', 'IG-XL',
+      'WP-S', 'WP-M', 'WP-L', 'WP-XL',
+      'GD-S', 'GD-M', 'GD-L', 'GD-XL',
+      'RR-S', 'RR-M', 'RR-L', 'RR-XL'
+    ];
+    if (tuckedTailPatterns.includes(pattern.patternCode)) {
+      fitNotes.push("This pattern group is specially designed to provide additional coverage for breeds with tucked tails. Raincoats and Winter Coats for this breed will fit as described. Tummy Warmers and Cooling Coats will fit as described in the neck and chest, and will be slightly shorter in length.");
     }
 
     // Calculate final score
