@@ -154,15 +154,6 @@ export default function FitResults({ results, measurements, onStartOver }: FitRe
     }
   };
 
-  // Helper function to get qualitative score description
-  const getScoreDescription = (score: number): { text: string; color: string } => {
-    if (score >= 0.95) return { text: 'Excellent', color: 'text-green-600' };
-    if (score >= 0.85) return { text: 'Very Good', color: 'text-green-600' };
-    if (score >= 0.75) return { text: 'Good', color: 'text-blue-600' };
-    if (score >= 0.65) return { text: 'Fair', color: 'text-yellow-600' };
-    return { text: 'Needs Review', color: 'text-orange-600' };
-  };
-
   const renderPatternCard = (result: {
     pattern: {
       id: string;
@@ -338,20 +329,58 @@ export default function FitResults({ results, measurements, onStartOver }: FitRe
           </div>
 
 
-          {/* Debug Info - only show in development */}
-          {process.env.NODE_ENV === 'development' && (
-            <div className="mt-4 p-3 bg-gray-50 rounded-lg text-xs text-gray-600">
-              <div className="font-mono">
-                Debug: Overall {(result.finalScore * 100).toFixed(1)}% | 
-                Neck {(result.neckScore * 100).toFixed(1)}% | 
-                Chest {(result.chestScore * 100).toFixed(1)}% | 
-                Length {(result.lengthScore * 100).toFixed(1)}%
+          {/* Debug Scoring Information - Always visible for testing */}
+          <div className="mt-6 border-t-2 border-dashed border-gray-200 pt-4">
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+              <div className="flex items-center mb-3">
+                <span className="bg-yellow-500 text-white text-xs font-bold px-2 py-1 rounded mr-2">DEBUG</span>
+                <h4 className="font-bold text-gray-900 text-sm">Scoring Breakdown (Testing Only)</h4>
               </div>
-              <div className="text-xs text-gray-500 mt-1">
-                Open browser console (F12) for detailed scoring analysis
+              
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+                <div className="bg-white p-3 rounded border border-yellow-300">
+                  <div className="text-xs font-medium text-gray-500 uppercase mb-1">Neck Score</div>
+                  <div className="text-lg font-bold text-gray-900">{(result.neckScore * 100).toFixed(2)}%</div>
+                  <div className="text-xs text-gray-500 mt-1">Raw: {result.neckScore.toFixed(4)}</div>
+                </div>
+                <div className="bg-white p-3 rounded border border-yellow-300">
+                  <div className="text-xs font-medium text-gray-500 uppercase mb-1">Chest Score</div>
+                  <div className="text-lg font-bold text-gray-900">{(result.chestScore * 100).toFixed(2)}%</div>
+                  <div className="text-xs text-gray-500 mt-1">Raw: {result.chestScore.toFixed(4)}</div>
+                </div>
+                <div className="bg-white p-3 rounded border border-yellow-300">
+                  <div className="text-xs font-medium text-gray-500 uppercase mb-1">Length Score</div>
+                  <div className="text-lg font-bold text-gray-900">{(result.lengthScore * 100).toFixed(2)}%</div>
+                  <div className="text-xs text-gray-500 mt-1">Raw: {result.lengthScore.toFixed(4)}</div>
+                </div>
+                <div className="bg-white p-3 rounded border-2 border-yellow-500">
+                  <div className="text-xs font-medium text-gray-500 uppercase mb-1">Final Score</div>
+                  <div className="text-lg font-bold text-brand-teal">{(result.finalScore * 100).toFixed(2)}%</div>
+                  <div className="text-xs text-gray-500 mt-1">Raw: {result.finalScore.toFixed(4)}</div>
+                </div>
+              </div>
+              
+              <div className="text-xs text-gray-600 font-mono bg-white p-2 rounded border border-yellow-200">
+                <div className="font-semibold mb-1">Pattern ID: {result.pattern.id}</div>
+                <div>Fit Label: <span className="font-bold">{result.fitLabel}</span></div>
+                {measurements && (
+                  <div className="mt-2 pt-2 border-t border-gray-200">
+                    <div className="grid grid-cols-3 gap-2 text-xs">
+                      <div>
+                        <span className="text-gray-500">User Neck:</span> {measurements.neckCircumference}&quot;
+                      </div>
+                      <div>
+                        <span className="text-gray-500">User Chest:</span> {measurements.chestCircumference}&quot;
+                      </div>
+                      <div>
+                        <span className="text-gray-500">User Length:</span> {measurements.backLength}&quot;
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
-          )}
+          </div>
         </div>
       </div>
     );
@@ -366,6 +395,42 @@ export default function FitResults({ results, measurements, onStartOver }: FitRe
 
   return (
     <div className="space-y-6 md:space-y-8">
+      {/* User Measurements Display */}
+      {measurements && (
+        <div className="bg-white rounded-xl shadow-lg border-2 border-brand-teal/30 p-6 mb-8">
+          <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
+            <span className="bg-brand-teal text-white rounded-full w-8 h-8 flex items-center justify-center mr-3 text-sm">✓</span>
+            Your Dog&apos;s Measurements
+          </h2>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            <div className="bg-gray-50 p-3 rounded-lg">
+              <div className="text-xs font-medium text-gray-500 uppercase mb-1">Breed</div>
+              <div className="text-sm font-bold text-gray-900">{measurements.breed}</div>
+            </div>
+            <div className="bg-gray-50 p-3 rounded-lg">
+              <div className="text-xs font-medium text-gray-500 uppercase mb-1">Neck</div>
+              <div className="text-sm font-bold text-gray-900">{measurements.neckCircumference}&quot;</div>
+            </div>
+            <div className="bg-gray-50 p-3 rounded-lg">
+              <div className="text-xs font-medium text-gray-500 uppercase mb-1">Chest</div>
+              <div className="text-sm font-bold text-gray-900">{measurements.chestCircumference}&quot;</div>
+            </div>
+            <div className="bg-gray-50 p-3 rounded-lg">
+              <div className="text-xs font-medium text-gray-500 uppercase mb-1">Back Length</div>
+              <div className="text-sm font-bold text-gray-900">{measurements.backLength}&quot;</div>
+            </div>
+            <div className="bg-gray-50 p-3 rounded-lg">
+              <div className="text-xs font-medium text-gray-500 uppercase mb-1">Tail Type</div>
+              <div className="text-sm font-bold text-gray-900 capitalize">{measurements.tailType}</div>
+            </div>
+            <div className="bg-gray-50 p-3 rounded-lg">
+              <div className="text-xs font-medium text-gray-500 uppercase mb-1">Leg Type</div>
+              <div className="text-sm font-bold text-gray-900">{measurements.chondrodystrophic ? 'Very Short' : 'Normal'}</div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {allResults.map((result, globalIndex: number) => 
         renderPatternCard(result, globalIndex)
       )}
