@@ -84,11 +84,34 @@ export function logScoreBreakdown(breakdown: ScoreBreakdown): void {
   
   // Length scoring breakdown
   console.group('📏 Length Fit Analysis');
-  const patternLength = measurements.twLength || measurements.minLength || 0;
+  
+  // Determine which length field to use (same logic as patternFinder.ts)
+  const patternPrefix = pattern.patternCode.split('-')[0];
+  const tuckedTailPatternPrefixes = ['GH', 'IG', 'WP', 'GD', 'RR'];
+  const isTuckedTailPattern = tuckedTailPatternPrefixes.includes(patternPrefix);
+  
+  let patternLength: number;
+  let lengthField: string;
+  
+  if (userInput.tailType === 'down/tucked' && isTuckedTailPattern) {
+    // Use RC length for tucked tail breeds with down/tucked tails
+    patternLength = measurements.rcLength ?? measurements.wcLength ?? measurements.twLength ?? measurements.minLength ?? 0;
+    lengthField = measurements.rcLength ? 'RC (Rain Coat)' : 
+                  measurements.wcLength ? 'WC (Winter Coat)' : 
+                  measurements.twLength ? 'TW (Tummy Warmer)' : 'minLength';
+  } else {
+    // Use TW length for all other cases
+    patternLength = measurements.twLength ?? measurements.minLength ?? 0;
+    lengthField = measurements.twLength ? 'TW (Tummy Warmer)' : 'minLength';
+  }
+  
   const lengthRatio = patternLength / userInput.backLength;
   
   console.log(`Your back length: ${userInput.backLength}"`);
-  console.log(`Pattern length: ${patternLength}"`);
+  console.log(`Pattern length: ${patternLength}" (using ${lengthField})`);
+  if (isTuckedTailPattern && userInput.tailType === 'down/tucked') {
+    console.log(`ℹ️  Using RC/WC length for tucked tail breed with down/tucked tail`);
+  }
   console.log(`Length ratio: ${(lengthRatio * 100).toFixed(1)}% (pattern vs dog)`);
   console.log(`Tail type: ${userInput.tailType}`);
   

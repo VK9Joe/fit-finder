@@ -357,6 +357,31 @@ function calculateFinalScore(
 }
 
 /**
+ * Get the appropriate pattern length based on tail type and pattern code
+ * For tucked tail breeds (GH, IG, WP, GD, RR) with down/tucked tails,
+ * use RC (Rain Coat) length which is longer. Otherwise use TW (Tummy Warmer) length.
+ */
+function getPatternLength(
+  pattern: CoatPattern,
+  tailType: UserInput['tailType']
+): number {
+  const { measurements } = pattern;
+  const patternPrefix = pattern.patternCode.split('-')[0];
+  
+  // List of tucked tail pattern codes - these patterns are designed for breeds with tucked tails
+  const tuckedTailPatternPrefixes = ['GH', 'IG', 'WP', 'GD', 'RR'];
+  
+  // For down/tucked tails on tucked tail patterns, use RC (Rain Coat) or WC (Winter Coat) length
+  // These are 15-20% longer than TW length to provide extra coverage for tucked tails
+  if (tailType === 'down/tucked' && tuckedTailPatternPrefixes.includes(patternPrefix)) {
+    return measurements.rcLength ?? measurements.wcLength ?? measurements.twLength ?? measurements.minLength ?? 0;
+  }
+  
+  // For all other cases, use TW (Tummy Warmer) length as standard
+  return measurements.twLength ?? measurements.minLength ?? 0;
+}
+
+/**
  * Find patterns using exact document specification
  */
 export function findPatterns(
@@ -387,7 +412,9 @@ export function findPatterns(
     let disqualificationReason: string | undefined;
 
     // Check breed match
-    const breedMatch = userPatternKey === pattern.patternCode.split('-')[0];
+    const patternBreedCode = pattern.patternCode.split('-')[0];
+    const breedMatch = userPatternKey === patternBreedCode;
+    console.log(`🐶 Breed match check: User breed "${userInput.breed}" → ${userPatternKey || 'none'} | Pattern ${pattern.patternCode} → ${patternBreedCode} | Match: ${breedMatch ? '✓' : '✗'}`);
 
     // Calculate neck score
     const neckResult = calculateNeckScore(
@@ -423,10 +450,11 @@ export function findPatterns(
 
     fitNotes.push(chestResult.note);
 
-    // Calculate length score
+    // Calculate length score using appropriate length field for tail type
+    const patternLength = getPatternLength(pattern, userInput.tailType);
     const lengthResult = calculateLengthScore(
       userInput.backLength,
-      measurements.twLength ?? measurements.minLength ?? 0,
+      patternLength,
       userInput.tailType
     );
 
