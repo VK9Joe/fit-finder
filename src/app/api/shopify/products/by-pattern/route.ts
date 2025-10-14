@@ -193,6 +193,9 @@ export async function GET(request: Request) {
       product.variants.forEach((variant) => {
         if (!variant.sku) return;
         
+        // Exclude ReCoat items (SKUs containing "-RC")
+        if (variant.sku.includes('-RC')) return;
+        
         const skuParts = variant.sku.split('-');
         if (skuParts.length < 3) return; // Need at least: TYPE-BREED-SIZE
         
