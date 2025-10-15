@@ -90,7 +90,7 @@ async function fetchAllProductsMinimal() {
     cursor = data?.products?.pageInfo?.endCursor;
   }
   
-  console.log(`Fetched ${allProducts.length} total products from Shopify`);
+  // console.log(`Fetched ${allProducts.length} total products from Shopify`);
   return allProducts;
 }
 
@@ -117,7 +117,7 @@ export async function GET(request: Request) {
       }, { status: 404 });
     }
 
-    console.log(`Looking for pattern: ${patternCode} in ${allProducts.length} products`);
+    // console.log(`Looking for pattern: ${patternCode} in ${allProducts.length} products`);
     
     // Extract breed and size from pattern code (e.g., "VS-XS" -> breed="VS", size="XS")
     const patternParts = patternCode.split('-');
@@ -267,8 +267,8 @@ export async function GET(request: Request) {
       });
     });
     
-    console.log(`Found ${totalMatches} matching products for pattern ${patternCode}:`, 
-      Object.keys(productsByType).map(type => `${type}: ${productsByType[type].length}`).join(', '));
+    // console.log(`Found ${totalMatches} matching products for pattern ${patternCode}:`, 
+      // Object.keys(productsByType).map(type => `${type}: ${productsByType[type].length}`).join(', '));
     
     // Log color selection details for debugging
     Object.keys(productsByType).forEach(type => {
@@ -276,11 +276,11 @@ export async function GET(request: Request) {
       if (products.length > 0) {
         const selectedColors = products.map(p => p.variant.skuInfo.color).join(', ');
         const availableStatus = products.map(p => p.variant.availableForSale ? '✓' : '✗').join(', ');
-        console.log(`${type} selected colors: [${selectedColors}] availability: [${availableStatus}]`);
+        // console.log(`${type} selected colors: [${selectedColors}] availability: [${availableStatus}]`);
         
         // Log color fallback information
         const customPriority = createCustomColorPriority(season as 'spring' | 'summer' | 'fall' | 'winter', type);
-        console.log(`${type} color priority for ${season}: [${customPriority.slice(0, 5).join(', ')}...]`);
+        // console.log(`${type} color priority for ${season}: [${customPriority.slice(0, 5).join(', ')}...]`);
       }
     });
     
@@ -291,8 +291,8 @@ export async function GET(request: Request) {
         .filter(v => v.sku)
         .slice(0, 10)
         .map(v => v.sku);
-      console.log(`No matches found. Sample SKUs being processed:`, sampleSKUs);
-      console.log(`Looking for breed: ${expectedBreed}, size: ${expectedSize}`);
+      // console.log(`No matches found. Sample SKUs being processed:`, sampleSKUs);
+      // console.log(`Looking for breed: ${expectedBreed}, size: ${expectedSize}`);
     }
 
     // If specific product type requested, return only that type
