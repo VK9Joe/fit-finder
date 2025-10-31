@@ -54,10 +54,14 @@
       return;
     }
 
-    const { type, height, timestamp } = event.data || {};
+    const { type, height, scrollTop, distanceFromBottom, timestamp } = event.data || {};
 
     if (type === 'IFRAME_HEIGHT_UPDATE' && typeof height === 'number') {
       updateIframeHeight(height);
+    }
+
+    if (type === 'IFRAME_SCROLL_NEAR_BOTTOM') {
+      handleIframeScroll(scrollTop, distanceFromBottom);
     }
   }
 
@@ -84,16 +88,44 @@
     clearTimeout(resizeTimeout);
     resizeTimeout = setTimeout(() => {
       isResizing = true;
-      
+
       iframe.style.height = newHeight + 'px';
-      
+
       // Reset resizing flag after transition
       setTimeout(() => {
         isResizing = false;
       }, 300);
-      
+
       console.log('Fit Finder: Updated iframe height to', newHeight + 'px');
     }, 50);
+  }
+
+  /**
+   * Handle iframe scroll synchronization
+   */
+  function handleIframeScroll(scrollTop, distanceFromBottom) {
+    if (!iframe) return;
+
+    // Get iframe position relative to viewport
+    const iframeRect = iframe.getBoundingClientRect();
+    const windowHeight = window.innerHeight;
+
+    // If iframe bottom is near or below viewport, scroll parent window
+    const iframeBottom = iframeRect.bottom;
+    const scrollThreshold = 150; // pixels from bottom
+
+    if (iframeBottom - windowHeight < scrollThreshold) {
+      // Calculate how much to scroll the parent window
+      const scrollAmount = scrollThreshold - (windowHeight - iframeBottom);
+
+      // Smooth scroll the parent window
+      window.scrollBy({
+        top: scrollAmount,
+        behavior: 'smooth'
+      });
+
+      console.log('Fit Finder: Scrolling parent window by', scrollAmount, 'px');
+    }
   }
 
   /**

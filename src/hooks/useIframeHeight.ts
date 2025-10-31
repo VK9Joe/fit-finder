@@ -9,6 +9,7 @@ import { useEffect, useRef } from 'react';
 export function useIframeHeight() {
   const containerRef = useRef<HTMLDivElement>(null);
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
+  const scrollHandlerRef = useRef<((event: Event) => void) | null>(null);
 
   useEffect(() => {
     // Only run in iframe context
@@ -71,6 +72,35 @@ export function useIframeHeight() {
       }
     };
 
+    // Handle scroll synchronization
+    const handleScroll = (event: Event) => {
+      const target = event.target as HTMLElement;
+      if (!target) return;
+
+      const scrollTop = target.scrollTop;
+      const scrollHeight = target.scrollHeight;
+      const clientHeight = target.clientHeight;
+
+      // Calculate how far we are from the bottom
+      const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
+
+      // If we're close to the bottom, notify parent to scroll
+      if (distanceFromBottom < 100 && scrollTop > 0) {
+        window.parent.postMessage({
+          type: 'IFRAME_SCROLL_NEAR_BOTTOM',
+          scrollTop: scrollTop,
+          distanceFromBottom: distanceFromBottom,
+          timestamp: Date.now()
+        }, '*');
+      }
+    };
+
+    // Add scroll listener to the main container
+    if (containerRef.current) {
+      containerRef.current.addEventListener('scroll', handleScroll, { passive: true });
+      scrollHandlerRef.current = handleScroll;
+    }
+
     window.addEventListener('resize', handleResize);
     window.addEventListener('message', handleParentResize);
     window.addEventListener('message', handleHeightRequest);
@@ -110,6 +140,9 @@ export function useIframeHeight() {
     return () => {
       if (resizeObserverRef.current) {
         resizeObserverRef.current.disconnect();
+      }
+      if (scrollHandlerRef.current && containerRef.current) {
+        containerRef.current.removeEventListener('scroll', scrollHandlerRef.current);
       }
       observer.disconnect();
       window.removeEventListener('resize', handleResize);
