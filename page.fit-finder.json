@@ -1,0 +1,204 @@
+/*
+ * ------------------------------------------------------------
+ * IMPORTANT: The contents of this file are auto-generated.
+ *
+ * This file may be updated by the Shopify admin theme editor
+ * or related systems. Please exercise caution as any changes
+ * made to this file may be overwritten.
+ * ------------------------------------------------------------
+ */
+ {
+  "sections": {
+    "section_hero_banner": {
+      "type": "section-hero",
+      "blocks": {
+        "spacer_YGMLFH": {
+          "type": "spacer",
+          "settings": {
+            "spacer_padding": 40,
+            "show_line": false
+          }
+        },
+        "text_nEi6Ai": {
+          "type": "text",
+          "settings": {
+            "richtext": "<p>Fit Finder</p>",
+            "text_size": 10
+          }
+        }
+      },
+      "block_order": [
+        "spacer_YGMLFH",
+        "text_nEi6Ai"
+      ],
+      "settings": {
+        "image": "shopify://shop_images/Lavender_Banner_1.png",
+        "height": "use_image",
+        "overlay_opacity": 60,
+        "overlay_color": "#000000",
+        "enable_overlay_text": true,
+        "content_width": 2000,
+        "text_align": "align--middle-left",
+        "text_color": "text--white",
+        "color_bg": "hero__content--transparent",
+        "width": "wrapper--none",
+        "padding_top": 0,
+        "padding_bottom": 0
+      }
+    },
+    "section_richtext_DWJQBE": {
+      "type": "section-richtext",
+      "blocks": {
+        "text_rXLHyi": {
+          "type": "text",
+          "settings": {
+            "text": "<p><strong>Performance Outerwear + Perfect Fit</strong></p>",
+            "text_size": 7,
+            "text_columns": 1
+          }
+        }
+      },
+      "block_order": [
+        "text_rXLHyi"
+      ],
+      "name": "Rich text",
+      "settings": {
+        "align_text": "text-center",
+        "text_color": "text--white",
+        "bg": "palette--bright bg--bright--accent",
+        "content_width": 2000,
+        "width": "wrapper",
+        "padding_top": 36,
+        "padding_bottom": 36
+      }
+    },
+    "section_html_8qVf3J": {
+      "type": "section-html",
+      "settings": {
+        "html": "<div class=\"fit-finder-container\">\n  <iframe\n    id=\"fit-finder-iframe\"\n    src=\"https://fit-finder-topaz.vercel.app/\"\n    width=\"100%\"\n    height=\"800\"\n    frameborder=\"0\"\n    style=\"border: none; border-radius: 8px; overflow: hidden\"\n    loading=\"lazy\"\n  >\n  </iframe>\n</div>\n\n<style>\n/* Hide scrollbar for webkit browsers (Chrome, Safari, Edge) */\n::-webkit-scrollbar {\n  width: 0px;\n  background: transparent; /* make scrollbar transparent */\n}\n\n/* Hide scrollbar for Firefox */\nhtml {\n  scrollbar-width: none; /* Firefox */\n}\n\n/* Alternative method - hide scrollbar but keep functionality */\nbody {\n  overflow-y: scroll; /* Always show scroll area */\n  scrollbar-width: none; /* Firefox */\n  -ms-overflow-style: none; /* Internet Explorer 10+ */\n}\n\nbody::-webkit-scrollbar {\n  width: 0;\n  height: 0;\n}\n\n/* Prevent scroll jumping when iframe resizes */\n.fit-finder-container {\n  scroll-behavior: auto !important;\n  position: relative;\noverflow:hidden;\n}\n\n/* Smooth transitions for iframe height changes */\n#fit-finder-iframe {\n  transition: height 0.2s ease-out !important;\n  transform: translateZ(0); /* Force hardware acceleration */\n  will-change: height; /* Optimize for height changes */\n}\n\n/* Prevent scroll jumping during dropdown interactions */\nbody {\n  scroll-behavior: auto !important;\n}\n\n/* Ensure iframe doesn't cause layout shifts */\n.fit-finder-container iframe {\n  display: block;\n  margin: 0;\n  padding: 0;\n}\n\n</style>",
+        "width": "wrapper--none",
+        "padding_top": 20,
+        "padding_bottom": 20
+      }
+    },
+    "main": {
+      "type": "page",
+      "disabled": true,
+      "settings": {
+        "kicker": "",
+        "kicker_size": 3,
+        "show_title": true,
+        "title_size": 8,
+        "show_content": true,
+        "content_size": 5,
+        "align_text": "text-left",
+        "text_color": "text--neutral",
+        "bg": "palette--light bg--accent",
+        "width": "wrapper",
+        "padding_top": 0,
+        "padding_bottom": 50
+      }
+    },
+    "section_faq_kxCLpz": {
+      "type": "section-faq",
+      "blocks": {
+        "text_CBMiJt": {
+          "type": "text",
+          "settings": {
+            "title": "Production Seamstress/Seamster | Part-time and Full-time available",
+            "content": "<ul><li>$19-$22/hr DOE</li><li>Flexible Schedule</li><li>On-site gym and game room</li><li>Unlimited use of public transit with ORCA card</li></ul><p>In this important role, you will be responsible for every step of the custom and semi-custom garment making process, including cutting, sewing, and finishing. All work will be performed at our facility - <strong>this is not a take-home role</strong>.<br/><br/>Our ideal candidate will possess:<br/>-At least one year of commercial production/piecework sewing experience.<br/>-Sample-making experience.<br/>-Ability to work quickly while maintaining high quality standards.<br/><br/>Job requirements include:<br/>-Basic English proficiency and ability to follow instructions.<br/>-Experience and familiarity with a variety of sewing machines and equipment.<br/>-Ability to work well in a small team environment.<br/>-Ability to work with minimal supervision.<br/>-Ability to lift a 40lb box to shoulder level.<br/><br/>If you have the skill, experience and interest, come join our friendly team!<br/><br/>Interested candidates, please reply with a basic resume describing relevant work experience.</p>"
+          }
+        },
+        "text_fdNJj6": {
+          "type": "text",
+          "settings": {
+            "title": "Fulfillment Processing Associate",
+            "content": "<p><strong>Job description for Processing Associate:</strong></p><p>Voyagers K9 Apparel is a family-owned small business that has been making dog apparel for nearly 30 years. We pride ourselves on making high-quality, performance outerwear that keeps active dogs comfy in all weather environments. Our products are enjoyed by customers around the world. We are located in a clean and spacious facility in downtown Tacoma, just steps from the light rail and public transit station, and easy access to parking.</p><p><br/></p><p>We have a current opening for a Fulfillment Processing Associate. This important role is primarily responsible for helping us keep our promise to deliver a quality product in a timely manner to our customers. To accomplish this, the Fulfillment Processing Associate will ensure daily orders are pulled, checked for accuracy, packed and shipped.</p><p><br/></p><p><strong>Key Responsibilities: </strong></p><ul><li>Picking and packing incoming orders</li><li>Adhering to fulfillment process guidelines</li><li>Maintaining production queue</li><li>Inventory management</li><li>Perform Quality Assurance (QA) inspections</li></ul><p><strong>Required skills and abilities:</strong></p><ul><li>Excellent attention to detail</li><li>Identify and match patterns in SKU codes</li><li>Lift 40lbs above shoulder height</li><li>Prioritize and complete tasks</li><li>Work quickly and efficiently with minimal supervision</li></ul><p><strong>Qualifications:</strong></p><ul><li>Eligible to work in the United States</li><li>English language fluency, spoken and written</li></ul><p><strong>Benefits include:</strong></p><ul><li>ORCA card</li><li>On site fitness facility</li><li>Flexible working hours</li><li>Paid sick leave</li></ul><p>This is an ideal role for a student. This is a seasonal position with flexible hours. Regular business hours are 7:30am to 4:30pm, Monday through Friday excluding holidays. After a probationary period, this role is eligible to work an alternative schedule, including evenings and weekends.</p>"
+          }
+        },
+        "text_JpFXwC": {
+          "type": "text",
+          "disabled": true,
+          "settings": {
+            "title": "Frequently asked question",
+            "content": "<p>Share details about your shipping policies, item returns, or customer service.</p>"
+          }
+        }
+      },
+      "block_order": [
+        "text_CBMiJt",
+        "text_fdNJj6",
+        "text_JpFXwC"
+      ],
+      "disabled": true,
+      "settings": {
+        "title": "",
+        "title_align": "text-left",
+        "title_size": 4,
+        "heading_size": 5,
+        "text_size": 5,
+        "text_color": "text--neutral",
+        "bg": "palette--light bg--neutral",
+        "width": "wrapper",
+        "padding_top": 36,
+        "padding_bottom": 36
+      }
+    },
+    "section_richtext_YU3EDd": {
+      "type": "section-richtext",
+      "blocks": {
+        "heading_HJdzEr": {
+          "type": "heading",
+          "settings": {
+            "heading": "<h2>Interested in joining our team?</h2>",
+            "text_size": 8
+          }
+        }
+      },
+      "block_order": [
+        "heading_HJdzEr"
+      ],
+      "disabled": true,
+      "settings": {
+        "align_text": "text-center",
+        "text_color": "text--neutral",
+        "bg": "palette--light bg--neutral",
+        "content_width": 2000,
+        "width": "wrapper",
+        "padding_top": 36,
+        "padding_bottom": 36
+      }
+    },
+    "17255686287fa90a8d": {
+      "type": "apps",
+      "blocks": {
+        "powerful_form_builder_app_block_T4mMTi": {
+          "type": "shopify://apps/powerful-form-builder/blocks/app-block/e4bcb1eb-35b2-42e6-bc37-bfe0e1542c9d",
+          "settings": {
+            "shortcode": "<div class=\"globo-formbuilder\" data-id=\"MzcwODE=\"></div>"
+          }
+        }
+      },
+      "block_order": [
+        "powerful_form_builder_app_block_T4mMTi"
+      ],
+      "disabled": true,
+      "settings": {
+        "text_color": "text--neutral",
+        "bg": "palette--light bg--neutral",
+        "width": "wrapper",
+        "padding_top": 36,
+        "padding_bottom": 36
+      }
+    }
+  },
+  "order": [
+    "section_hero_banner",
+    "section_richtext_DWJQBE",
+    "section_html_8qVf3J",
+    "main",
+    "section_faq_kxCLpz",
+    "section_richtext_YU3EDd",
+    "17255686287fa90a8d"
+  ]
+}

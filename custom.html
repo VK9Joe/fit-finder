@@ -1,0 +1,64 @@
+<div class="fit-finder-container">
+    <iframe
+      id="fit-finder-iframe"
+      src="https://fit-finder-topaz.vercel.app/"
+      width="100%"
+      height="1200"
+      frameborder="0"
+      style="border: none; border-radius: 8px; overflow: hidden"
+      loading="lazy"
+    >
+    </iframe>
+  </div>
+  
+  <style>
+  /* Hide scrollbar for webkit browsers (Chrome, Safari, Edge) */
+  ::-webkit-scrollbar {
+    width: 0px;
+    background: transparent; /* make scrollbar transparent */
+  }
+  
+  /* Hide scrollbar for Firefox */
+  html {
+    scrollbar-width: none; /* Firefox */
+  }
+  
+  /* Alternative method - hide scrollbar but keep functionality */
+  body {
+    overflow-y: scroll; /* Always show scroll area */
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* Internet Explorer 10+ */
+  }
+  
+  body::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+  }
+  
+  /* Prevent scroll jumping when iframe resizes */
+  .fit-finder-container {
+    scroll-behavior: auto !important;
+    position: relative;
+  overflow:hidden;
+  }
+  
+  /* Smooth transitions for iframe height changes */
+  #fit-finder-iframe {
+    transition: height 0.2s ease-out !important;
+    transform: translateZ(0); /* Force hardware acceleration */
+    will-change: height; /* Optimize for height changes */
+  }
+  
+  /* Prevent scroll jumping during dropdown interactions */
+  body {
+    scroll-behavior: auto !important;
+  }
+  
+  /* Ensure iframe doesn't cause layout shifts */
+  .fit-finder-container iframe {
+    display: block;
+    margin: 0;
+    padding: 0;
+  }
+  
+  </style>

@@ -224,45 +224,8 @@ export default function FitFinder() {
   // Regular layout
   return (
     <div ref={containerRef} className="relative w-full">
-      {/* Hero Section - Always visible */}
-      <div className="relative overflow-hidden">
-        {/* Hero Background Image */}
-        <div className="relative h-[450px] md:h-[550px] lg:h-[700px] w-full bg-cover bg-center bg-no-repeat"
-             style={{ backgroundImage: 'url(/hero_bg.png)' }}>
-          {/* Overlay for better text contrast */}
-          <div className="absolute inset-0 bg-black/20"></div>
-          
-          {/* Dynamic Heading based on state */}
-          <div className="absolute left-8 md:left-16 top-[45%] transform -translate-y-1/2 z-10">
-            <h1 className="text-3xl md:text-4xl text-white/90 font-medium drop-shadow-lg">
-              {appState === 'form' ? 'Fit-Finder' : 'Your Perfect Fit Results'}
-            </h1>
-            {appState === 'results' && enhancedResults && (
-              <p className="text-white/80 text-sm md:text-base drop-shadow-md mt-2">
-                Found {[
-                  ...(enhancedResults.bestFit || []),
-                  ...(enhancedResults.goodFit || []),
-                  ...(enhancedResults.mightFit || [])
-                ].length} pattern{[
-                  ...(enhancedResults.bestFit || []),
-                  ...(enhancedResults.goodFit || []),
-                  ...(enhancedResults.mightFit || [])
-                ].length !== 1 ? 's' : ''} that match your dog&apos;s measurements
-              </p>
-            )}
-          </div>
-          
-          {/* Bottom Banner */}
-          <div className="absolute bottom-0 left-0 right-0 py-6 w-full bg-brand-teal shadow-lg">
-            <div className="container mx-auto text-center">
-              <p className="text-white text-xl md:text-3xl font-bold tracking-wide">Performance Outerwear + Perfect Fit</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* Main Content */}
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-16 pt-8">
         {appState === 'form' && (
           <FitFinderForm
             onSubmit={handleFormSubmit}
