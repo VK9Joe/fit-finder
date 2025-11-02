@@ -203,16 +203,6 @@ export default function FitFinder() {
         triggerHeightUpdate();
       }, 100);
 
-      // Scroll to results after a short delay to allow rendering
-      setTimeout(() => {
-        const resultsElement = document.getElementById('fit-results');
-        if (resultsElement) {
-          resultsElement.scrollIntoView({
-            behavior: 'smooth',
-            block: 'start'
-          });
-        }
-      }, 200);
     } catch (error) {
       console.error('Error getting fit results:', error);
       setEnhancedResults(null);

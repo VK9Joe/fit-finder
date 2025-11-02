@@ -49,10 +49,29 @@ export function Autocomplete({
 }: AutocompleteProps) {
   const [open, setOpen] = React.useState(false);
   const [searchValue, setSearchValue] = React.useState("");
+  const triggerRef = React.useRef<HTMLButtonElement>(null);
 
   const handleSelect = (selectedValue: string) => {
     onValueChange(selectedValue);
     setOpen(false);
+  };
+
+  // Prevent scroll when opening in iframe
+  const handleOpenChange = (newOpen: boolean) => {
+    if (newOpen && triggerRef.current) {
+      // Store current scroll position
+      const scrollY = window.scrollY;
+      const scrollX = window.scrollX;
+      
+      setOpen(newOpen);
+      
+      // Restore scroll position after state update
+      requestAnimationFrame(() => {
+        window.scrollTo(scrollX, scrollY);
+      });
+    } else {
+      setOpen(newOpen);
+    }
   };
 
   const handleSearchChange = (search: string) => {
@@ -76,9 +95,10 @@ export function Autocomplete({
   }, [value, options]);
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={handleOpenChange} modal={false}>
       <PopoverTrigger asChild>
         <Button
+          ref={triggerRef}
           variant="outline"
           role="combobox"
           aria-expanded={open}
@@ -96,7 +116,22 @@ export function Autocomplete({
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+      <PopoverContent 
+        className="w-[var(--radix-popover-trigger-width)] p-0" 
+        align="start"
+        onOpenAutoFocus={(e) => {
+          // Prevent focus from scrolling the page
+          e.preventDefault();
+          // Manually focus the input after a brief delay
+          setTimeout(() => {
+            const target = e.currentTarget as HTMLElement;
+            const input = target.querySelector('input');
+            if (input) {
+              input.focus({ preventScroll: true });
+            }
+          }, 0);
+        }}
+      >
         <Command shouldFilter={false}>
           <CommandInput
             placeholder="Type to search breeds..."
