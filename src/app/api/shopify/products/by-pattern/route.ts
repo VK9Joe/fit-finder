@@ -13,6 +13,7 @@ async function fetchAllProductsMinimal() {
     handle: string;
     availableForSale: boolean;
     onlineStoreUrl: string | null;
+    tags: string[];
     featuredImage: string | null;
     price: string;
     currencyCode: string;
@@ -41,6 +42,7 @@ async function fetchAllProductsMinimal() {
             handle: string;
             availableForSale: boolean;
             onlineStoreUrl: string | null;
+            tags: string[];
             featuredImage?: { url: string } | null;
             priceRange?: {
               minVariantPrice?: {
@@ -74,6 +76,7 @@ async function fetchAllProductsMinimal() {
       handle: edge.node.handle,
       availableForSale: edge.node.availableForSale,
       onlineStoreUrl: edge.node.onlineStoreUrl,
+      tags: edge.node.tags || [],
       featuredImage: edge.node.featuredImage?.url || null,
       price: edge.node.priceRange?.minVariantPrice?.amount || '0',
       currencyCode: edge.node.priceRange?.minVariantPrice?.currencyCode || 'USD',
@@ -166,6 +169,13 @@ export async function GET(request: Request) {
     allProducts.forEach(product => {
       if (!product.variants || product.variants.length === 0) return;
       
+      // Exclude ReCoat items based on tags
+      const isRecoat = product.tags?.some(tag => tag.toLowerCase() === 'recoat');
+      if (isRecoat) {
+        console.log(`Filtering out ReCoat product: ${product.title} (tags: ${product.tags.join(', ')})`);
+        return;
+      }
+      
       // Group variants by product type and color
       const variantsByType: Record<string, Record<string, Array<{
         id: string;
@@ -192,9 +202,6 @@ export async function GET(request: Request) {
       
       product.variants.forEach((variant) => {
         if (!variant.sku) return;
-        
-        // Exclude ReCoat items (SKUs containing "-RC")
-        if (variant.sku.includes('-RC')) return;
         
         const skuParts = variant.sku.split('-');
         if (skuParts.length < 3) return; // Need at least: TYPE-BREED-SIZE

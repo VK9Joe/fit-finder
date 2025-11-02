@@ -13,9 +13,10 @@ interface FitFinderFormProps {
   onSubmit: (measurements: UserInput) => void;
   isLoading?: boolean;
   initialMeasurements?: UserInput | null;
+  hasResults?: boolean;
 }
 
-export default function FitFinderForm({ onSubmit, isLoading = false, initialMeasurements = null }: FitFinderFormProps) {
+export default function FitFinderForm({ onSubmit, isLoading = false, initialMeasurements = null, hasResults = false }: FitFinderFormProps) {
   const [measurements, setMeasurements] = useState<Partial<UserInput>>(() => {
     return initialMeasurements || {
       tailType: 'straight',
@@ -269,7 +270,7 @@ export default function FitFinderForm({ onSubmit, isLoading = false, initialMeas
                       Finding perfect fit...
                     </>
                   ) : (
-                    'Find My Perfect Fit'
+                    hasResults ? 'Update Results' : 'Find My Perfect Fit'
                   )}
                 </button>
                 

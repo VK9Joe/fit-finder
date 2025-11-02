@@ -305,6 +305,7 @@ export const MINIMAL_PRODUCTS_QUERY = /* GraphQL */ `
           handle
           availableForSale
           onlineStoreUrl
+          tags
           featuredImage {
             url
             altText

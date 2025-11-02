@@ -42,7 +42,6 @@ export async function fetchAllProductsForPattern(
     }
     
     const data = await response.json();
-    
     // Convert the response to our expected format
     const productsByType: Record<ProductType, ShopifyProductInfo[]> = {
       'RC': data.productsByType?.RC || [],
