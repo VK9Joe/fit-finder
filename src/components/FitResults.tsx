@@ -131,12 +131,32 @@ export default function FitResults({ results, measurements, onStartOver }: FitRe
     }
   };
 
-  if (!results) {
+  // Check if there are any results at all
+  const hasAnyResults = !!(results && (
+    (results.bestFit && results.bestFit.length > 0) ||
+    (results.goodFit && results.goodFit.length > 0) ||
+    (results.mightFit && results.mightFit.length > 0)
+  ));
+
+  // Show no results message if no patterns were found
+  if (!results || !hasAnyResults) {
     return (
       <div className="text-center py-16">
         <AlertCircle className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">No Results Found</h2>
-        <p className="text-gray-600 mb-8">We couldn&apos;t find any matching patterns for your dog&apos;s measurements.</p>
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">No Patterns Found</h2>
+        <div className="max-w-2xl mx-auto mb-8">
+          <p className="text-gray-600 text-lg leading-relaxed">
+            We could not find a pattern that fits the measurements you provided. Please double check your measurements, and try choosing a different tail type. If there are no viable patterns, please visit our{' '}
+            <a 
+              href="https://k9apparel.com/collections/made-to-measure" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-brand-teal hover:text-brand-teal-dark font-semibold underline"
+            >
+              Made-to-Measure page
+            </a>.
+          </p>
+        </div>
         <Button onClick={onStartOver} className="bg-brand-teal hover:bg-brand-teal-dark text-white">
           Try Again
         </Button>
