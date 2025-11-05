@@ -201,6 +201,24 @@ export default function FitFinder() {
       // Trigger height update after content changes
       setTimeout(() => {
         triggerHeightUpdate();
+        
+        // Scroll to appropriate section
+        const hasAnyResults = !!(enhanced && (
+          (enhanced.bestFit && enhanced.bestFit.length > 0) ||
+          (enhanced.goodFit && enhanced.goodFit.length > 0) ||
+          (enhanced.mightFit && enhanced.mightFit.length > 0)
+        ));
+        
+        const targetElement = hasAnyResults 
+          ? document.getElementById('fit-results')
+          : document.getElementById('no-results');
+          
+        if (targetElement) {
+          targetElement.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start'
+          });
+        }
       }, 100);
 
     } catch (error) {
@@ -211,6 +229,15 @@ export default function FitFinder() {
       // Trigger height update even on error
       setTimeout(() => {
         triggerHeightUpdate();
+        
+        // Scroll to no results message
+        const noResultsElement = document.getElementById('no-results');
+        if (noResultsElement) {
+          noResultsElement.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start'
+          });
+        }
       }, 100);
     }
   };

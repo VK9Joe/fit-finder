@@ -141,7 +141,7 @@ export default function FitResults({ results, measurements, onStartOver }: FitRe
   // Show no results message if no patterns were found
   if (!results || !hasAnyResults) {
     return (
-      <div className="text-center py-16">
+      <div id="no-results" className="text-center py-16">
         <AlertCircle className="h-16 w-16 text-gray-400 mx-auto mb-4" />
         <h2 className="text-2xl font-bold text-gray-900 mb-2">No Patterns Found</h2>
         <div className="max-w-2xl mx-auto mb-8">
