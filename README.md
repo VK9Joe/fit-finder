@@ -238,6 +238,6 @@ A: Test with responsive design tools, check Tailwind breakpoints.
 ### License
 Proprietary - VK9 Apparel. All rights reserved.
 
----
+--
 
 Built with ❤️ for dog lovers everywhere.
