@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { UserInput } from '@/types';
 import { findPatterns } from '@/utils/patternFinder';
@@ -112,6 +112,7 @@ export default function FitFinder() {
   } | null>(null);
   
   const [lastMeasurements, setLastMeasurements] = useState<UserInput | null>(null);
+  const fromFormSubmit = useRef(false);
 
   // Check URL parameters on mount and when they change
   useEffect(() => {
@@ -174,6 +175,39 @@ export default function FitFinder() {
     }
   };
 
+  const logSubmission = (measurements: UserInput, results: typeof enhancedResults) => {
+    const allResults = [
+      ...(results?.bestFit ?? []),
+      ...(results?.goodFit ?? []),
+      ...(results?.mightFit ?? []),
+    ];
+
+    const now = new Date();
+    const timestamp =
+      now.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) +
+      ' ' +
+      now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+
+    const topResults = allResults.slice(0, 3).map((r) => {
+      const productLinks = Object.values(r.products ?? {})
+        .flat()
+        .map((p) => `https://k9apparel.com/products/${p.handle}`)
+        .filter((v, i, arr) => arr.indexOf(v) === i);
+      return {
+        name: r.pattern.name,
+        fitLabel: r.fitLabel,
+        fitNotes: r.fitNotes.join(', '),
+        productLinks: productLinks.join(', '),
+      };
+    });
+
+    fetch('/api/log-submission', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ timestamp, ...measurements, topResults }),
+    }).catch((err) => console.error('Failed to log submission:', err));
+  };
+
   // Load results based on measurements
   const loadResults = async (measurements: UserInput) => {
     setAppState('loading');
@@ -197,6 +231,10 @@ export default function FitFinder() {
       const enhanced = await getTop3PatternsWithProducts(categorizedResults);
       setEnhancedResults(enhanced);
       setAppState('results');
+      if (fromFormSubmit.current) {
+        fromFormSubmit.current = false;
+        logSubmission(measurements, enhanced);
+      }
 
       // Trigger height update after content changes
       setTimeout(() => {
@@ -243,6 +281,7 @@ export default function FitFinder() {
   };
 
   const handleFormSubmit = async (measurements: UserInput) => {
+    fromFormSubmit.current = true;
     saveMeasurements(measurements);
     await loadResults(measurements);
   };
