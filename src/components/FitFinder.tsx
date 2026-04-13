@@ -204,7 +204,7 @@ export default function FitFinder() {
     fetch('/api/log-submission', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ timestamp, ...measurements, topResults }),
+      body: JSON.stringify({ timestamp, ...measurements, topResults, userAgent: navigator.userAgent }),
     }).catch((err) => console.error('Failed to log submission:', err));
   };
 

@@ -9,10 +9,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: false, error: 'GOOGLE_APPS_SCRIPT_URL not set' }, { status: 500 });
     }
 
+    const ip =
+      request.headers.get('x-forwarded-for')?.split(',')[0].trim() ??
+      request.headers.get('x-real-ip') ??
+      'unknown';
+
     await fetch(scriptUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
+      body: JSON.stringify({ ...body, ip }),
     });
 
     return NextResponse.json({ ok: true });
