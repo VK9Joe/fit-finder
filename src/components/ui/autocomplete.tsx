@@ -120,11 +120,9 @@ export function Autocomplete({
         className="w-[var(--radix-popover-trigger-width)] p-0" 
         align="start"
         onOpenAutoFocus={(e) => {
-          // Prevent focus from scrolling the page
           e.preventDefault();
-          // Manually focus the input after a brief delay
+          const target = e.currentTarget as HTMLElement;
           setTimeout(() => {
-            const target = e.currentTarget as HTMLElement;
             const input = target.querySelector('input');
             if (input) {
               input.focus({ preventScroll: true });
