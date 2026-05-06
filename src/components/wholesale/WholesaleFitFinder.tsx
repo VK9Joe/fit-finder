@@ -1,14 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { UserInput, ProductType } from '@/types';
+import { UserInput } from '@/types';
 import { findWholesaleMatches, WholesaleMatch } from '@/utils/wholesalePatternFinder';
-import { fetchAllProductsForPattern } from '@/lib/patternProducts';
 import WholesaleGate from './WholesaleGate';
 import WholesaleResults from './WholesaleResults';
-import FitFinderForm from '@/components/FitFinderForm';
+import WholesaleForm from './WholesaleForm';
 
-type AppState = 'gate' | 'form' | 'loading' | 'results';
+type AppState = 'gate' | 'form' | 'results';
 
 export default function WholesaleFitFinder() {
   const [appState, setAppState] = useState<AppState>('gate');
@@ -21,22 +20,12 @@ export default function WholesaleFitFinder() {
     setAppState('form');
   };
 
-  const handleFormSubmit = async (measurements: UserInput) => {
+  const handleFormSubmit = (measurements: UserInput) => {
     setLastMeasurements(measurements);
-    setAppState('loading');
-
     const matches = findWholesaleMatches(measurements);
-
-    const enriched = await Promise.all(
-      matches.map(async (match) => {
-        const products = await fetchAllProductsForPattern(match.pattern.patternCode) as unknown as WholesaleMatch['products'];
-        return { ...match, products };
-      })
-    );
-
-    setResults(enriched);
+    setResults(matches);
     setAppState('results');
-    logSubmission(measurements, enriched, storeCode);
+    logSubmission(measurements, matches, storeCode);
   };
 
   const handleNewCustomer = () => {
@@ -58,16 +47,7 @@ export default function WholesaleFitFinder() {
               {storeCode}
             </span>
           </div>
-          <FitFinderForm onSubmit={handleFormSubmit} isLoading={false} />
-        </div>
-      )}
-
-      {appState === 'loading' && (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50">
-          <div className="text-center">
-            <div className="inline-block w-12 h-12 border-4 border-brand-teal border-t-transparent rounded-full animate-spin mb-4" />
-            <p className="text-gray-600 font-medium">Finding best matches...</p>
-          </div>
+          <WholesaleForm onSubmit={handleFormSubmit} />
         </div>
       )}
 
@@ -92,15 +72,8 @@ async function logSubmission(
     const topResults = results.map((r) => ({
       rank: r.rank,
       patternCode: r.pattern.patternCode,
-      name: r.pattern.name,
       fitLabel: r.fitLabel,
-      score: `${Math.round(r.finalScore * 100)}%`,
       fitNotes: r.fitNotes.join('; '),
-      productLinks: Object.values(r.products || {})
-        .flat()
-        .filter((p): p is NonNullable<typeof p> => !!p && !!p.handle)
-        .map((p) => `https://k9apparel.com/products/${p.handle}`)
-        .join(', '),
     }));
 
     await fetch('/api/wholesale/log-submission', {
@@ -127,6 +100,6 @@ async function logSubmission(
       }),
     });
   } catch {
-    // Non-blocking — don't disrupt the retail flow
+    // Non-blocking
   }
 }

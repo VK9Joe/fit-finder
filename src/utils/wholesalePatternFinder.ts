@@ -1,23 +1,9 @@
-import { UserInput, AdvancedFitResult, ProductType } from '@/types';
+import { UserInput, AdvancedFitResult } from '@/types';
 import { findPatterns } from './patternFinder';
 import { wholesalePatterns } from '../data/wholesalePatterns';
 
 export interface WholesaleMatch extends AdvancedFitResult {
   rank: number;
-  products?: Record<ProductType, Array<{
-    id: string;
-    title: string;
-    handle: string;
-    price: string;
-    currencyCode: string;
-    availableForSale: boolean;
-    featuredImage?: string;
-    variant: {
-      id: string;
-      sku: string;
-      skuInfo: { color: string };
-    };
-  }>>;
 }
 
 export function findWholesaleMatches(userInput: UserInput): WholesaleMatch[] {
