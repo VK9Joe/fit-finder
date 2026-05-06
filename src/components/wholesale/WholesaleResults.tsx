@@ -6,9 +6,17 @@ import { RotateCcw } from 'lucide-react';
 import { UserInput } from '@/types';
 import { WholesaleMatch } from '@/utils/wholesalePatternFinder';
 
+interface DisplayValues {
+  neck: number;
+  chest: number;
+  backLength: number;
+  unit: 'in' | 'cm';
+}
+
 interface WholesaleResultsProps {
   results: WholesaleMatch[];
   measurements: UserInput;
+  displayValues?: DisplayValues;
   storeCode: string;
   onNewCustomer: () => void;
 }
@@ -16,6 +24,7 @@ interface WholesaleResultsProps {
 export default function WholesaleResults({
   results,
   measurements,
+  displayValues,
   onNewCustomer,
 }: WholesaleResultsProps) {
   const getFitColor = (label: string) => {
@@ -37,6 +46,19 @@ export default function WholesaleResults({
     }
   };
 
+  // Build measurement summary line using original user-entered values when available
+  const unit = displayValues?.unit ?? 'in';
+  const neck = displayValues?.neck ?? measurements.neckCircumference;
+  const chest = displayValues?.chest ?? measurements.chestCircumference;
+  const backLength = displayValues?.backLength ?? measurements.backLength;
+  const unitSuffix = unit === 'cm' ? ' cm' : '"';
+
+  const measurementSummary = [
+    `${neck}${unitSuffix} neck`,
+    `${chest}${unitSuffix} chest`,
+    backLength === 0 ? 'length skipped' : `${backLength}${unitSuffix} back`,
+  ].join(' • ');
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Sticky top bar */}
@@ -44,7 +66,7 @@ export default function WholesaleResults({
         <div>
           <h1 className="text-lg font-bold text-gray-900">Fit Results</h1>
           <p className="text-xs text-gray-500">
-            {measurements.breed} &bull; {measurements.neckCircumference}&quot; neck &bull; {measurements.chestCircumference}&quot; chest &bull; {measurements.backLength}&quot; back
+            {measurements.breed} &bull; {measurementSummary}
           </p>
         </div>
         <Button
@@ -57,6 +79,22 @@ export default function WholesaleResults({
       </div>
 
       <div className="max-w-2xl mx-auto px-4 py-6 space-y-4">
+        {/* No results */}
+        {results.length === 0 && (
+          <div className="bg-white rounded-2xl shadow-md border border-amber-200 p-6 text-center">
+            <p className="text-gray-700 font-medium">
+              No results for those measurements. Please check your measurements and try again. Consider changing the tail type, as that will affect length matching.
+            </p>
+            <Button
+              onClick={onNewCustomer}
+              className="mt-5 bg-brand-teal hover:bg-brand-teal-dark text-white px-6 py-2 rounded-lg font-medium"
+            >
+              Try Again
+            </Button>
+          </div>
+        )}
+
+        {/* Result cards */}
         {results.map((result) => (
           <div key={result.pattern.id} className="bg-white rounded-2xl shadow-md border border-gray-200 overflow-hidden">
             <div className="p-5">
@@ -72,6 +110,11 @@ export default function WholesaleResults({
                   <Badge className={`text-xs font-semibold px-2.5 py-1 border ${getFitColor(result.fitLabel)}`}>
                     {result.fitLabel}
                   </Badge>
+                  {result.lengthSkipped && (
+                    <span className="text-xs text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+                      neck &amp; chest only
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -90,15 +133,17 @@ export default function WholesaleResults({
           </div>
         ))}
 
-        <div className="text-center pt-4 pb-8">
-          <Button
-            onClick={onNewCustomer}
-            className="bg-brand-teal hover:bg-brand-teal-dark text-white px-8 py-3 rounded-xl font-semibold text-base shadow-md"
-          >
-            <RotateCcw className="h-4 w-4 mr-2" />
-            Next Customer
-          </Button>
-        </div>
+        {results.length > 0 && (
+          <div className="text-center pt-4 pb-8">
+            <Button
+              onClick={onNewCustomer}
+              className="bg-brand-teal hover:bg-brand-teal-dark text-white px-8 py-3 rounded-xl font-semibold text-base shadow-md"
+            >
+              <RotateCcw className="h-4 w-4 mr-2" />
+              Next Customer
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -8,20 +8,34 @@ import WholesaleResults from './WholesaleResults';
 import WholesaleForm from './WholesaleForm';
 
 type AppState = 'gate' | 'form' | 'results';
+type Unit = 'in' | 'cm';
+
+interface DisplayValues {
+  neck: number;
+  chest: number;
+  backLength: number;
+  unit: Unit;
+}
 
 export default function WholesaleFitFinder() {
   const [appState, setAppState] = useState<AppState>('gate');
   const [storeCode, setStoreCode] = useState('');
   const [results, setResults] = useState<WholesaleMatch[]>([]);
   const [lastMeasurements, setLastMeasurements] = useState<UserInput | null>(null);
+  const [displayValues, setDisplayValues] = useState<DisplayValues | null>(null);
 
   const handleAuthenticated = (code: string) => {
     setStoreCode(code);
     setAppState('form');
   };
 
-  const handleFormSubmit = (measurements: UserInput) => {
+  const handleFormSubmit = (
+    measurements: UserInput,
+    unit: Unit,
+    rawValues: { neck: number; chest: number; backLength: number }
+  ) => {
     setLastMeasurements(measurements);
+    setDisplayValues({ ...rawValues, unit });
     const matches = findWholesaleMatches(measurements);
     setResults(matches);
     setAppState('results');
@@ -31,6 +45,7 @@ export default function WholesaleFitFinder() {
   const handleNewCustomer = () => {
     setResults([]);
     setLastMeasurements(null);
+    setDisplayValues(null);
     setAppState('form');
   };
 
@@ -55,6 +70,7 @@ export default function WholesaleFitFinder() {
         <WholesaleResults
           results={results}
           measurements={lastMeasurements}
+          displayValues={displayValues ?? undefined}
           storeCode={storeCode}
           onNewCustomer={handleNewCustomer}
         />
@@ -74,6 +90,7 @@ async function logSubmission(
       patternCode: r.pattern.patternCode,
       fitLabel: r.fitLabel,
       fitNotes: r.fitNotes.join('; '),
+      lengthSkipped: r.lengthSkipped ?? false,
     }));
 
     await fetch('/api/wholesale/log-submission', {
