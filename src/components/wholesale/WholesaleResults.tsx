@@ -106,6 +106,13 @@ export default function WholesaleResults({
                 <div className="flex items-center gap-3 flex-wrap">
                   <span className="font-mono text-2xl font-extrabold text-gray-900 tracking-wider">
                     {result.pattern.patternCode}
+                    {result.pattern.measurements.rcLength !== undefined && (
+                      <span className="text-gray-500 font-semibold text-xl ml-2">
+                        ({unit === 'cm'
+                          ? (Math.round(result.pattern.measurements.rcLength * 2.54 * 10) / 10)
+                          : result.pattern.measurements.rcLength})
+                      </span>
+                    )}
                   </span>
                   <Badge className={`text-xs font-semibold px-2.5 py-1 border ${getFitColor(result.fitLabel)}`}>
                     {result.fitLabel}
