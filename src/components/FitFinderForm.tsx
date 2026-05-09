@@ -23,14 +23,19 @@ export default function FitFinderForm({ onSubmit, isLoading = false, initialMeas
       chondrodystrophic: false
     };
   });
+  const [backLengthRaw, setBackLengthRaw] = useState<string>(() =>
+    initialMeasurements?.backLength === 0 ? '00' : (initialMeasurements?.backLength?.toString() ?? '')
+  );
   const [errors, setErrors] = useState<FormErrors>({});
 
+  const isLengthSkip = backLengthRaw === '00';
+
   const isFormComplete = () => {
-    return measurements.breed && 
-           measurements.backLength && measurements.backLength > 0 &&
+    return measurements.breed &&
            measurements.neckCircumference && measurements.neckCircumference > 0 &&
            measurements.chestCircumference && measurements.chestCircumference > 0 &&
-           measurements.tailType;
+           (isLengthSkip || (measurements.backLength && measurements.backLength > 0)) &&
+           (isLengthSkip || measurements.tailType);
   };
 
   const validateForm = (): boolean => {
@@ -39,7 +44,7 @@ export default function FitFinderForm({ onSubmit, isLoading = false, initialMeas
     if (!measurements.breed) {
       newErrors.breed = "Please select your dog's breed";
     }
-    if (!measurements.backLength || measurements.backLength <= 0) {
+    if (!isLengthSkip && (!measurements.backLength || measurements.backLength <= 0)) {
       newErrors.backLength = 'Please enter a valid back length measurement';
     }
     if (!measurements.neckCircumference || measurements.neckCircumference <= 0) {
@@ -48,7 +53,7 @@ export default function FitFinderForm({ onSubmit, isLoading = false, initialMeas
     if (!measurements.chestCircumference || measurements.chestCircumference <= 0) {
       newErrors.chestCircumference = 'Please enter a valid chest measurement';
     }
-    if (!measurements.tailType) {
+    if (!isLengthSkip && !measurements.tailType) {
       newErrors.tailType = "Please select your dog's tail type";
     }
 
@@ -58,7 +63,10 @@ export default function FitFinderForm({ onSubmit, isLoading = false, initialMeas
 
   const handleSubmit = () => {
     if (validateForm()) {
-      onSubmit(measurements as UserInput);
+      const submission = isLengthSkip
+        ? { ...measurements, backLength: 0, tailType: measurements.tailType || 'straight' } as UserInput
+        : measurements as UserInput;
+      onSubmit(submission);
     }
   };
 
@@ -176,13 +184,21 @@ export default function FitFinderForm({ onSubmit, isLoading = false, initialMeas
                   </label>
                   <input
                     type="number"
-                    value={measurements.backLength || ''}
-                    onChange={(e) => updateMeasurement('backLength', parseFloat(e.target.value) || 0)}
+                    value={backLengthRaw}
+                    onChange={(e) => {
+                      const raw = e.target.value;
+                      setBackLengthRaw(raw);
+                      const parsed = raw === '00' ? 0 : (parseFloat(raw) || 0);
+                      setMeasurements(prev => ({ ...prev, backLength: parsed }));
+                      if (errors.backLength) {
+                        setErrors(prev => ({ ...prev, backLength: undefined }));
+                      }
+                    }}
                     placeholder="15"
                     className={`w-full h-12 px-4 border rounded-lg text-gray-900 text-base focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors ${
                       errors.backLength ? 'border-red-300' : 'border-gray-300'
                     }`}
-                    min="1"
+                    min="0"
                     step="1"
                   />
                   {errors.backLength && (

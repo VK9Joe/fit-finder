@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { UserInput } from '@/types';
 import { findPatterns } from '@/utils/patternFinder';
+import { findPatternsNoLength } from '@/utils/noLengthMatcher';
 import { getTop3PatternsWithProducts } from '@/lib/patternProducts';
 import { patternsFromCsv } from '@/data/patternsFromCsv';
 import { useIframeHeight, triggerHeightUpdate } from '@/hooks/useIframeHeight';
@@ -130,8 +131,8 @@ export default function FitFinder() {
       const tail = urlParams.get('tail') as UserInput['tailType'];
       const chondro = urlParams.get('chondro') === 'true';
 
-      // Validate that we have complete measurements
-      if (breed && neck > 0 && chest > 0 && length > 0 && tail) {
+      // Validate that we have complete measurements (length === 0 is the skip-length signal)
+      if (breed && neck > 0 && chest > 0 && length >= 0 && tail) {
         const measurements: UserInput = {
           breed,
           neckCircumference: neck,
@@ -224,8 +225,10 @@ export default function FitFinder() {
     }, 100);
 
     try {
-      // Use the enhanced pattern finder
-      const categorizedResults = findPatterns(measurements, patternsFromCsv);
+      // Use the enhanced pattern finder; route to no-length matcher when backLength is 0
+      const categorizedResults = measurements.backLength === 0
+        ? findPatternsNoLength(measurements, patternsFromCsv)
+        : findPatterns(measurements, patternsFromCsv);
 
       // Enhance with products
       const enhanced = await getTop3PatternsWithProducts(categorizedResults);
