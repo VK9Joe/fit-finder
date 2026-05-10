@@ -15,6 +15,7 @@ interface FitResultsProps {
         name: string;
         description: string;
         price: number;
+        measurements?: { rcLength?: number };
       };
       finalScore: number;
       fitLabel: string;
@@ -45,6 +46,7 @@ interface FitResultsProps {
         name: string;
         description: string;
         price: number;
+        measurements?: { rcLength?: number };
       };
       finalScore: number;
       fitLabel: string;
@@ -75,6 +77,7 @@ interface FitResultsProps {
         name: string;
         description: string;
         price: number;
+        measurements?: { rcLength?: number };
       };
       finalScore: number;
       fitLabel: string;
@@ -218,6 +221,11 @@ export default function FitResults({ results, measurements, onStartOver }: FitRe
                 <Badge className={`${getFitLabelColor(result.fitLabel)} text-xs font-medium px-3 py-1`}>
                   {result.fitLabel}
                 </Badge>
+                {result.pattern.measurements?.rcLength !== undefined && (
+                  <Badge className="bg-gray-100 text-gray-700 border border-gray-200 text-xs font-medium px-3 py-1">
+                    RC: {result.pattern.measurements.rcLength}&quot;
+                  </Badge>
+                )}
               </div>
               <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-2">{result.pattern.name}</h2>
               <p className="text-gray-600 mb-4 text-sm leading-relaxed">{result.pattern.description}</p>

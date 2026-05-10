@@ -26,6 +26,7 @@ export default function FitFinder() {
         name: string;
         description: string;
         price: number;
+        measurements?: { rcLength?: number };
       };
       finalScore: number;
       fitLabel: string;
@@ -56,6 +57,7 @@ export default function FitFinder() {
         name: string;
         description: string;
         price: number;
+        measurements?: { rcLength?: number };
       };
       finalScore: number;
       fitLabel: string;
@@ -86,6 +88,7 @@ export default function FitFinder() {
         name: string;
         description: string;
         price: number;
+        measurements?: { rcLength?: number };
       };
       finalScore: number;
       fitLabel: string;
