@@ -183,6 +183,7 @@ export default function FitResults({ results, measurements, onStartOver }: FitRe
       name: string;
       description: string;
       price: number;
+      measurements?: { rcLength?: number };
     };
     finalScore: number;
     fitLabel: string;
