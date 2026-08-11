@@ -60,5 +60,52 @@
     margin: 0;
     padding: 0;
   }
-  
+
   </style>
+
+  <script>
+    (function () {
+      var iframe = document.getElementById("fit-finder-iframe");
+      if (!iframe) return;
+
+      var queued = false;
+
+      // The iframe is stretched to its full content height, so its own viewport
+      // covers the whole app and it cannot tell what is actually on screen.
+      // Tell it, so dropdowns can open into visible space instead of scrolling
+      // this page to reach themselves.
+      function sendViewport() {
+        queued = false;
+        if (!iframe.contentWindow) return;
+        iframe.contentWindow.postMessage(
+          {
+            type: "PARENT_VIEWPORT",
+            iframeTop: iframe.getBoundingClientRect().top,
+            viewportHeight: window.innerHeight
+          },
+          "*"
+        );
+      }
+
+      function queueViewport() {
+        if (queued) return;
+        queued = true;
+        requestAnimationFrame(sendViewport);
+      }
+
+      window.addEventListener("message", function (e) {
+        if (!e.data) return;
+        if (e.data.type === "IFRAME_HEIGHT_UPDATE") {
+          iframe.style.height = e.data.height + "px";
+          queueViewport();
+        } else if (e.data.type === "REQUEST_PARENT_VIEWPORT") {
+          sendViewport();
+        }
+      });
+
+      window.addEventListener("scroll", queueViewport, { passive: true });
+      window.addEventListener("resize", queueViewport);
+      iframe.addEventListener("load", sendViewport);
+      sendViewport();
+    })();
+  </script>

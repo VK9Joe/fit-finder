@@ -18,11 +18,18 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { useVisibleViewport } from "@/hooks/useVisibleViewport";
 
 export interface AutocompleteOption {
   value: string;
   label: string;
 }
+
+const LIST_MAX_HEIGHT = 300;
+const LIST_MIN_HEIGHT = 96;
+/** Search row plus the content's own border/offset, above the scrolling list. */
+const POPOVER_CHROME = 60;
+const EDGE_MARGIN = 8;
 
 interface AutocompleteProps {
   options: AutocompleteOption[];
@@ -49,30 +56,74 @@ export function Autocomplete({
 }: AutocompleteProps) {
   const [open, setOpen] = React.useState(false);
   const [searchValue, setSearchValue] = React.useState("");
+  const [placement, setPlacement] = React.useState<{
+    side: "top" | "bottom";
+    listMaxHeight: number;
+  }>({ side: "bottom", listMaxHeight: LIST_MAX_HEIGHT });
   const triggerRef = React.useRef<HTMLButtonElement>(null);
+  const getVisibleBand = useVisibleViewport();
 
   const handleSelect = (selectedValue: string) => {
     onValueChange(selectedValue);
     setOpen(false);
   };
 
-  // Prevent scroll when opening in iframe
+  /**
+   * Open on whichever side has room in the *visible* area and size the list to
+   * fit it, so the breed list never lands off screen. Radix can't work this out
+   * on its own inside the Shopify embed: the parent stretches the iframe to our
+   * full content height, so our viewport is the entire page and its collision
+   * detection sees room everywhere.
+   */
+  const measurePlacement = React.useCallback(() => {
+    const trigger = triggerRef.current;
+    if (!trigger) return;
+
+    const rect = trigger.getBoundingClientRect();
+    const band = getVisibleBand();
+    const below = band.bottom - rect.bottom - EDGE_MARGIN;
+    const above = rect.top - band.top - EDGE_MARGIN;
+
+    const side = below >= LIST_MAX_HEIGHT + POPOVER_CHROME || below >= above ? "bottom" : "top";
+    const available = (side === "bottom" ? below : above) - POPOVER_CHROME;
+
+    setPlacement({
+      side,
+      listMaxHeight: Math.round(
+        Math.min(LIST_MAX_HEIGHT, Math.max(LIST_MIN_HEIGHT, available))
+      ),
+    });
+  }, [getVisibleBand]);
+
   const handleOpenChange = (newOpen: boolean) => {
-    if (newOpen && triggerRef.current) {
-      // Store current scroll position
-      const scrollY = window.scrollY;
-      const scrollX = window.scrollX;
-      
-      setOpen(newOpen);
-      
-      // Restore scroll position after state update
-      requestAnimationFrame(() => {
-        window.scrollTo(scrollX, scrollY);
-      });
-    } else {
-      setOpen(newOpen);
-    }
+    if (newOpen) measurePlacement();
+    setOpen(newOpen);
   };
+
+  /**
+   * cmdk highlights the first item as soon as the list mounts and calls
+   * `scrollIntoView({ block: "nearest" })` on it. That walks *every* scrollable
+   * ancestor, and inside the iframe the only one able to move is the parent
+   * Shopify page — so opening the dropdown dragged the breed field down to the
+   * bottom of the window and pushed the list off screen. `preventScroll` does
+   * not apply to `scrollIntoView`, so keep the scrolling inside the list.
+   */
+  const containScroll = React.useCallback((node: HTMLDivElement | null) => {
+    if (!node) return;
+
+    node.scrollIntoView = () => {
+      const list = node.closest<HTMLElement>('[data-slot="command-list"]');
+      if (!list) return;
+
+      const item = node.getBoundingClientRect();
+      const bounds = list.getBoundingClientRect();
+      if (item.top < bounds.top) {
+        list.scrollTop -= bounds.top - item.top;
+      } else if (item.bottom > bounds.bottom) {
+        list.scrollTop += item.bottom - bounds.bottom;
+      }
+    };
+  }, []);
 
   const handleSearchChange = (search: string) => {
     setSearchValue(search);
@@ -116,9 +167,11 @@ export function Autocomplete({
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent 
-        className="w-[var(--radix-popover-trigger-width)] p-0" 
+      <PopoverContent
+        className="w-[var(--radix-popover-trigger-width)] p-0"
         align="start"
+        side={placement.side}
+        avoidCollisions={false}
         onOpenAutoFocus={(e) => {
           e.preventDefault();
           const target = e.currentTarget as HTMLElement;
@@ -137,12 +190,13 @@ export function Autocomplete({
             onValueChange={handleSearchChange}
             className="h-12 border-0 focus:ring-0"
           />
-          <CommandList>
+          <CommandList style={{ maxHeight: placement.listMaxHeight }}>
             <CommandEmpty>{emptyMessage}</CommandEmpty>
             <CommandGroup>
               {options.map((option) => (
                 <CommandItem
                   key={option.value}
+                  ref={containScroll}
                   value={option.value}
                   onSelect={handleSelect}
                   className="cursor-pointer"
