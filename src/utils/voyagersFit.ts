@@ -23,22 +23,19 @@ export interface VoyagersFit {
   apparelSize: string;
 }
 
-// Pattern data stores sizes as codes; the bar displays full words.
-const SIZE_LABELS: Record<string, string> = {
-  XS: 'X-Small',
-  S: 'Small',
-  M: 'Medium',
-  L: 'Large',
-  XL: 'X-Large',
-};
+// The bar shows the pattern size code as-is. XS is included: it currently only
+// appears on the Vizsla (VS) patterns, but it is a real size and must not be
+// dropped or mangled on its way to the bar.
+const SIZE_CODES = ['XS', 'S', 'M', 'L', 'XL'];
 
 /**
- * Expand a pattern size code ("S") into its display name ("Small").
- * Unknown codes pass through unchanged rather than being dropped.
+ * Normalize a pattern size code ("s" -> "S") for the bar. Anything that is not
+ * a known code passes through untouched rather than being dropped.
  */
 export function toApparelSize(sizeCode: string): string {
-  const code = sizeCode.trim().toUpperCase();
-  return SIZE_LABELS[code] ?? sizeCode.trim();
+  const code = sizeCode.trim();
+  const normalized = code.toUpperCase();
+  return SIZE_CODES.includes(normalized) ? normalized : code;
 }
 
 /**
