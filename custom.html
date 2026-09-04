@@ -70,6 +70,12 @@
 
       var queued = false;
 
+      // The Fit Finder is served from another origin, so anything it writes to
+      // localStorage lands on that origin, not the storefront's. It sends the
+      // final result over instead and we store it here, where the persistent
+      // fit bar can actually read it.
+      var appOrigin = new URL(iframe.src, window.location.href).origin;
+
       // The iframe is stretched to its full content height, so its own viewport
       // covers the whole app and it cannot tell what is actually on screen.
       // Tell it, so dropdowns can open into visible space instead of scrolling
@@ -100,6 +106,17 @@
           queueViewport();
         } else if (e.data.type === "REQUEST_PARENT_VIEWPORT") {
           sendViewport();
+        } else if (e.data.type === "VOYAGERS_FIT_UPDATED") {
+          if (e.origin !== appOrigin) return;
+          try {
+            localStorage.setItem("voyagersFit", JSON.stringify(e.data.payload));
+            // Let the fit bar update without waiting for the next page load.
+            window.dispatchEvent(
+              new CustomEvent("voyagersFit:updated", { detail: e.data.payload })
+            );
+          } catch (err) {
+            console.warn("Could not save voyagersFit:", err);
+          }
         }
       });
 

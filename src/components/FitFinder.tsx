@@ -8,6 +8,7 @@ import { findPatternsNoLength } from '@/utils/noLengthMatcher';
 import { getTop3PatternsWithProducts } from '@/lib/patternProducts';
 import { patternsFromCsv } from '@/data/patternsFromCsv';
 import { useIframeHeight, triggerHeightUpdate } from '@/hooks/useIframeHeight';
+import { buildVoyagersFit, saveVoyagersFit } from '@/utils/voyagersFit';
 import FitFinderForm from './FitFinderForm';
 import FitResults from './FitResults';
 
@@ -212,6 +213,18 @@ export default function FitFinder() {
     }).catch((err) => console.error('Failed to log submission:', err));
   };
 
+  // Persist the top recommendation for the theme's persistent fit bar
+  const persistVoyagersFit = (measurements: UserInput, results: typeof enhancedResults) => {
+    const topResult =
+      results?.bestFit?.[0] ?? results?.goodFit?.[0] ?? results?.mightFit?.[0];
+    if (!topResult) return;
+
+    const fit = buildVoyagersFit(measurements.breed, topResult.pattern.name);
+    if (fit) {
+      saveVoyagersFit(fit);
+    }
+  };
+
   // Load results based on measurements
   const loadResults = async (measurements: UserInput) => {
     setAppState('loading');
@@ -237,6 +250,7 @@ export default function FitFinder() {
       const enhanced = await getTop3PatternsWithProducts(categorizedResults);
       setEnhancedResults(enhanced);
       setAppState('results');
+      persistVoyagersFit(measurements, enhanced);
       if (fromFormSubmit.current) {
         fromFormSubmit.current = false;
         logSubmission(measurements, enhanced);
