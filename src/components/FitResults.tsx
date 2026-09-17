@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { AlertCircle, ShoppingCart, CheckCircle, ExternalLink } from 'lucide-react';
 import Image from 'next/image';
 import { buildShopifyProductUrl } from '@/lib/shopify-url-builder';
+import ShoppingPathCTAs from './ShoppingPathCTAs';
 
 interface FitResultsProps {
   results: {
@@ -357,7 +358,8 @@ export default function FitResults({ results, measurements, onStartOver }: FitRe
             </div>
           </div>
 
-
+          {/* Shopping paths for this specific breed + size recommendation */}
+          <ShoppingPathCTAs patternName={result.pattern.name} />
         </div>
       </div>
     );
