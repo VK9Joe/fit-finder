@@ -16,6 +16,8 @@ interface FitResultsProps {
         name: string;
         description: string;
         price: number;
+        category?: string;
+        size?: string;
         measurements?: { rcLength?: number };
       };
       finalScore: number;
@@ -47,6 +49,8 @@ interface FitResultsProps {
         name: string;
         description: string;
         price: number;
+        category?: string;
+        size?: string;
         measurements?: { rcLength?: number };
       };
       finalScore: number;
@@ -78,6 +82,8 @@ interface FitResultsProps {
         name: string;
         description: string;
         price: number;
+        category?: string;
+        size?: string;
         measurements?: { rcLength?: number };
       };
       finalScore: number;
@@ -184,6 +190,8 @@ export default function FitResults({ results, measurements, onStartOver }: FitRe
       name: string;
       description: string;
       price: number;
+      category?: string;
+      size?: string;
       measurements?: { rcLength?: number };
     };
     finalScore: number;
@@ -359,7 +367,11 @@ export default function FitResults({ results, measurements, onStartOver }: FitRe
           </div>
 
           {/* Shopping paths for this specific breed + size recommendation */}
-          <ShoppingPathCTAs patternName={result.pattern.name} />
+          <ShoppingPathCTAs
+            patternName={result.pattern.name}
+            breed={result.pattern.category}
+            sizeCode={result.pattern.size}
+          />
         </div>
       </div>
     );

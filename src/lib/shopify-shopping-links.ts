@@ -55,6 +55,36 @@ const BREED_FILTER_OVERRIDES: Record<string, string> = {
 };
 
 /**
+ * Sizes reach this module from two different places that disagree on spelling:
+ * findPatterns renders "Beagle - Small" while findPatternsNoLength renders
+ * "Beagle - S". Both must resolve to the same filter value, so everything is
+ * normalised to the catalog's own size code before lookup.
+ */
+const SIZE_ALIASES: Record<string, string> = {
+  XS: 'XS',
+  XSMALL: 'XS',
+  'X-SMALL': 'XS',
+  'EXTRA SMALL': 'XS',
+  S: 'S',
+  SMALL: 'S',
+  M: 'M',
+  MEDIUM: 'M',
+  L: 'L',
+  LARGE: 'L',
+  XL: 'XL',
+  XLARGE: 'XL',
+  'X-LARGE': 'XL',
+  'EXTRA LARGE': 'XL',
+};
+
+/** Resolve any spelling of a size to the catalog code, or null if unrecognised. */
+export function normalizeSizeCode(raw: string): string | null {
+  if (!raw) return null;
+  const key = raw.trim().toUpperCase().replace(/\s+/g, ' ');
+  return SIZE_ALIASES[key] ?? null;
+}
+
+/**
  * Values for filter.v.option.size. S, M and L are grouped by Shopify into
  * FilterSettingGroups and must be filtered by the group GID; XS and XL are not
  * grouped and filter by their plain option value. Sending a GID for XS/XL, or a
@@ -110,7 +140,8 @@ function buildFilteredCollectionUrl(
   const params = new URLSearchParams();
   params.set('filter.p.m.custom.breed_filter', BREED_FILTER_OVERRIDES[breed] ?? breed);
 
-  const sizeValue = SIZE_FILTER_VALUES[sizeCode.trim().toUpperCase()];
+  const normalized = normalizeSizeCode(sizeCode);
+  const sizeValue = normalized ? SIZE_FILTER_VALUES[normalized] : undefined;
   // An unmapped size would filter the collection down to nothing. Dropping the
   // size filter leaves a useful breed-filtered page instead of a dead end.
   if (sizeValue) {
@@ -134,12 +165,24 @@ export function buildReCoatUrl(breed: string, sizeCode: string): string {
   return buildFilteredCollectionUrl('recoat', breed, sizeCode, true);
 }
 
-/** Every shopping link for one recommendation, or null if the name is unparseable. */
-export function buildShoppingLinks(patternName: string): ShoppingLinks | null {
+/**
+ * Every shopping link for one recommendation.
+ *
+ * Prefers the pattern's own `category` and `size` fields. The display name is
+ * only a fallback: it is a presentation string, and the two matchers format it
+ * differently, so it is not a reliable source of the size.
+ */
+export function buildShoppingLinks(
+  patternName: string,
+  structured?: { breed?: string; sizeCode?: string }
+): ShoppingLinks | null {
   const parsed = parsePatternName(patternName);
-  if (!parsed) return null;
 
-  const { breed, sizeCode } = parsed;
+  const breed = structured?.breed?.trim() || parsed?.breed;
+  const rawSize = structured?.sizeCode?.trim() || parsed?.sizeCode;
+  if (!breed || !rawSize) return null;
+
+  const sizeCode = normalizeSizeCode(rawSize) ?? rawSize;
   return {
     breed,
     sizeCode,

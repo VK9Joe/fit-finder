@@ -14,6 +14,8 @@
  *                       localStorage, which is the copy the bar actually reads
  */
 
+import { normalizeSizeCode } from '@/lib/shopify-shopping-links';
+
 export const VOYAGERS_FIT_KEY = 'voyagersFit';
 export const VOYAGERS_FIT_MESSAGE = 'VOYAGERS_FIT_UPDATED';
 
@@ -23,19 +25,17 @@ export interface VoyagersFit {
   apparelSize: string;
 }
 
-// The bar shows the pattern size code as-is. XS is included: it currently only
-// appears on the Vizsla (VS) patterns, but it is a real size and must not be
-// dropped or mangled on its way to the bar.
-const SIZE_CODES = ['XS', 'S', 'M', 'L', 'XL'];
-
 /**
- * Normalize a pattern size code ("s" -> "S") for the bar. Anything that is not
- * a known code passes through untouched rather than being dropped.
+ * Normalize a pattern size for the bar, which shows the catalog size code.
+ *
+ * This has to cope with both spellings the app produces: findPatterns renders
+ * "Beagle - Small" while findPatternsNoLength renders "Beagle - S". Sharing the
+ * link builder's normaliser keeps the two from drifting apart again. Anything
+ * unrecognised passes through untouched rather than being dropped.
  */
 export function toApparelSize(sizeCode: string): string {
-  const code = sizeCode.trim();
-  const normalized = code.toUpperCase();
-  return SIZE_CODES.includes(normalized) ? normalized : code;
+  const trimmed = sizeCode.trim();
+  return normalizeSizeCode(trimmed) ?? trimmed;
 }
 
 /**

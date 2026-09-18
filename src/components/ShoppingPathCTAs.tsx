@@ -4,8 +4,12 @@ import { ArrowRight, Package, LayoutGrid, RefreshCw } from 'lucide-react';
 import { buildShoppingLinks } from '@/lib/shopify-shopping-links';
 
 interface ShoppingPathCTAsProps {
-  /** Pattern name for this recommendation, e.g. "Golden Retriever - M". */
+  /** Display name, e.g. "Golden Retriever - Medium". Used only as a fallback. */
   patternName: string;
+  /** The pattern's own breed field, preferred over parsing the display name. */
+  breed?: string;
+  /** The pattern's own size code ("M"), preferred over parsing the display name. */
+  sizeCode?: string;
 }
 
 /**
@@ -20,8 +24,8 @@ interface ShoppingPathCTAsProps {
  * inside the iframe. Navigating the top window also means the customer lands on
  * the storefront with the persistent fit bar still showing their breed and size.
  */
-export default function ShoppingPathCTAs({ patternName }: ShoppingPathCTAsProps) {
-  const links = buildShoppingLinks(patternName);
+export default function ShoppingPathCTAs({ patternName, breed: breedProp, sizeCode: sizeCodeProp }: ShoppingPathCTAsProps) {
+  const links = buildShoppingLinks(patternName, { breed: breedProp, sizeCode: sizeCodeProp });
   if (!links) return null;
 
   const { breed, sizeCode, kitBuilder, individualProducts, reCoat } = links;
