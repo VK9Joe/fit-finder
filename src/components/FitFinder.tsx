@@ -9,6 +9,17 @@ import { getTop3PatternsWithProducts } from '@/lib/patternProducts';
 import { patternsFromCsv } from '@/data/patternsFromCsv';
 import { useIframeHeight, triggerHeightUpdate } from '@/hooks/useIframeHeight';
 import { buildVoyagersFit, saveVoyagersFit } from '@/utils/voyagersFit';
+import { diagnoseNoResult, NoResultDiagnosis, FocusField } from '@/utils/noResultDiagnosis';
+import { ValidationReasonCode } from '@/utils/measurementValidation';
+import {
+  resetAttemptId,
+  createEventId,
+  fingerprintMeasurements,
+  changedFields,
+  logEvent,
+  isQaSession,
+} from '@/utils/submissionTracking';
+import NoResultsPanel from './NoResultsPanel';
 import FitFinderForm from './FitFinderForm';
 import FitResults from './FitResults';
 
@@ -119,6 +130,30 @@ export default function FitFinder() {
   const [lastMeasurements, setLastMeasurements] = useState<UserInput | null>(null);
   const fromFormSubmit = useRef(false);
 
+  // Why nothing matched, and the one field we are asking the customer to correct.
+  const [diagnosis, setDiagnosis] = useState<NoResultDiagnosis | null>(null);
+  const [focusField, setFocusField] = useState<FocusField | null>(null);
+  // Remounts the form so a corrected value actually appears in the fields.
+  const [formKey, setFormKey] = useState(0);
+
+  // Duplicate-submission guards. Refs rather than state: a double tap fires again
+  // before React has re-rendered the button as disabled.
+  const submissionInFlight = useRef(false);
+  const currentEventId = useRef<string>('');
+  const lastLoggedFingerprint = useRef<string | null>(null);
+  const previousMeasurements = useRef<UserInput | null>(null);
+  const selectedUnit = useRef<'in' | 'cm'>('in');
+  // Set just before a submission writes its measurements into the URL. That URL
+  // change re-fires the effect below, which would otherwise score the dog a
+  // second time and race the load already in progress.
+  const pendingUrlFingerprint = useRef<string | null>(null);
+
+  // Latch the ?qa=1 flag on load. The first submission replaces the query string
+  // with the measurements, so reading it later would lose the flag.
+  useEffect(() => {
+    isQaSession();
+  }, []);
+
   // Check URL parameters on mount and when they change
   useEffect(() => {
     // Only run on client side
@@ -146,6 +181,13 @@ export default function FitFinder() {
           chondrodystrophic: chondro
         };
 
+        // Our own submission just put these in the URL; its results are already
+        // loading. Back/forward and refresh have no pending marker, so they load.
+        if (pendingUrlFingerprint.current === fingerprintMeasurements(measurements)) {
+          pendingUrlFingerprint.current = null;
+          return;
+        }
+
         setLastMeasurements(measurements);
         loadResults(measurements);
       }
@@ -172,6 +214,11 @@ export default function FitFinder() {
       }
       
       // Update URL without refreshing the page
+      // Only mark it when the URL will actually change; otherwise the effect never
+      // fires to clear the marker, and it would wrongly swallow a later navigation.
+      if (window.location.search !== `?${params.toString()}`) {
+        pendingUrlFingerprint.current = fingerprintMeasurements(measurements);
+      }
       router.push(`?${params.toString()}`, { scroll: false });
       
       setLastMeasurements(measurements);
@@ -180,18 +227,16 @@ export default function FitFinder() {
     }
   };
 
-  const logSubmission = (measurements: UserInput, results: typeof enhancedResults) => {
+  const logSubmission = (
+    measurements: UserInput,
+    results: typeof enhancedResults,
+    noResultReason?: string
+  ) => {
     const allResults = [
       ...(results?.bestFit ?? []),
       ...(results?.goodFit ?? []),
       ...(results?.mightFit ?? []),
     ];
-
-    const now = new Date();
-    const timestamp =
-      now.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) +
-      ' ' +
-      now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 
     const topResults = allResults.slice(0, 3).map((r) => {
       const productLinks = Object.values(r.products ?? {})
@@ -206,11 +251,35 @@ export default function FitFinder() {
       };
     });
 
-    fetch('/api/log-submission', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ timestamp, ...measurements, topResults, userAgent: navigator.userAgent }),
-    }).catch((err) => console.error('Failed to log submission:', err));
+    logEvent(
+      'submission',
+      {
+        validationOutcome: 'passed',
+        validationReasonCodes: '',
+        noResultReason: noResultReason ?? '',
+        resultConfidence: allResults[0]?.fitLabel ?? 'No Result',
+        resultCount: allResults.length,
+        unit: selectedUnit.current,
+        // What the customer changed since their previous attempt
+        changedFields: changedFields(previousMeasurements.current, measurements).join(', '),
+        ...measurements,
+        topResults,
+      },
+      // The idempotency key: one deliberate submission, one event id.
+      { eventId: currentEventId.current }
+    );
+  };
+
+  /**
+   * Logged when the form blocks a submission, so each validation failure is
+   * recorded with its reason code rather than vanishing.
+   */
+  const logValidationFailure = (reasonCodes: ValidationReasonCode[]) => {
+    logEvent('validation_failure', {
+      validationOutcome: 'failed',
+      validationReasonCodes: reasonCodes.join(', '),
+      unit: selectedUnit.current,
+    });
   };
 
   // Persist the top recommendation for the theme's persistent fit bar
@@ -248,12 +317,21 @@ export default function FitFinder() {
 
       // Enhance with products
       const enhanced = await getTop3PatternsWithProducts(categorizedResults);
+      const matched =
+        enhanced.bestFit.length > 0 || enhanced.goodFit.length > 0 || enhanced.mightFit.length > 0;
+
+      // Work out which measurement or rule blocked the match, so the customer is
+      // never left with an empty results area.
+      const noResultDiagnosis = matched ? null : diagnoseNoResult(measurements, patternsFromCsv);
+      setDiagnosis(noResultDiagnosis);
+
       setEnhancedResults(enhanced);
       setAppState('results');
       persistVoyagersFit(measurements, enhanced);
       if (fromFormSubmit.current) {
         fromFormSubmit.current = false;
-        logSubmission(measurements, enhanced);
+        logSubmission(measurements, enhanced, noResultDiagnosis?.code);
+        previousMeasurements.current = measurements;
       }
 
       // Trigger height update after content changes
@@ -300,10 +378,60 @@ export default function FitFinder() {
     }
   };
 
-  const handleFormSubmit = async (measurements: UserInput) => {
-    fromFormSubmit.current = true;
-    saveMeasurements(measurements);
-    await loadResults(measurements);
+  const handleFormSubmit = async (
+    measurements: UserInput,
+    meta: { unit: 'in' | 'cm' } = { unit: 'in' }
+  ) => {
+    // Synchronous gate: twenty rapid taps still produce one scoring request.
+    if (submissionInFlight.current) return;
+    submissionInFlight.current = true;
+
+    try {
+      selectedUnit.current = meta.unit;
+
+      // Re-submitting an unchanged form is a duplicate, not a new attempt: the
+      // results on screen are already the answer. Nothing is re-scored or
+      // logged until the customer changes an input or starts over.
+      const fingerprint = fingerprintMeasurements(measurements);
+      if (fingerprint === lastLoggedFingerprint.current && appState === 'results') {
+        document
+          .getElementById(diagnosis ? 'no-results' : 'fit-results')
+          ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        return;
+      }
+
+      currentEventId.current = createEventId();
+      lastLoggedFingerprint.current = fingerprint;
+      fromFormSubmit.current = true;
+
+      setFocusField(null);
+      saveMeasurements(measurements);
+      await loadResults(measurements);
+    } finally {
+      submissionInFlight.current = false;
+    }
+  };
+
+  /** Re-run with one field changed, preserving every other answer. */
+  const resubmitWith = async (changes: Partial<UserInput>) => {
+    if (!lastMeasurements) return;
+    const next = { ...lastMeasurements, ...changes } as UserInput;
+    setLastMeasurements(next);
+    setFormKey((key) => key + 1);
+    await handleFormSubmit(next, { unit: selectedUnit.current });
+  };
+
+  const handleCorrectField = (field: FocusField | undefined) => {
+    if (!field) return;
+    setFocusField(field);
+  };
+
+  const handleApplyTailType = (tailType: UserInput['tailType']) => {
+    void resubmitWith({ tailType });
+  };
+
+  const handleSkipBackLength = () => {
+    void resubmitWith({ backLength: 0 });
   };
 
   const handleStartOver = () => {
@@ -312,6 +440,15 @@ export default function FitFinder() {
     setAppState('form');
     setLastMeasurements(null);
     setEnhancedResults(null);
+    setDiagnosis(null);
+    setFocusField(null);
+    setFormKey((key) => key + 1);
+
+    // A fresh run at the form is a new dog, so start a new attempt and allow the
+    // same measurements to be logged again.
+    resetAttemptId();
+    lastLoggedFingerprint.current = null;
+    previousMeasurements.current = null;
     
     // Trigger height update after state change
     setTimeout(() => {
@@ -326,10 +463,13 @@ export default function FitFinder() {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-16 pt-8">
         {/* Form - always visible */}
         <FitFinderForm
+          key={formKey}
           onSubmit={handleFormSubmit}
           isLoading={appState === 'loading'}
           initialMeasurements={lastMeasurements}
-          hasResults={appState === 'results' && enhancedResults !== null}
+          hasResults={appState === 'results' && diagnosis === null && enhancedResults !== null}
+          onValidationFailure={logValidationFailure}
+          focusField={focusField}
         />
 
         {/* Loading state - shown below form */}
@@ -345,8 +485,19 @@ export default function FitFinder() {
           </div>
         )}
 
+        {/* No match: explain which measurement or rule blocked it */}
+        {appState === 'results' && diagnosis && (
+          <NoResultsPanel
+            diagnosis={diagnosis}
+            onCorrectField={handleCorrectField}
+            onApplyTailType={handleApplyTailType}
+            onSkipBackLength={handleSkipBackLength}
+            onStartOver={handleStartOver}
+          />
+        )}
+
         {/* Results - shown below form when available */}
-        {appState === 'results' && enhancedResults && (
+        {appState === 'results' && !diagnosis && enhancedResults && (
           <div id="fit-results" className="mt-12">
             <FitResults
               results={enhancedResults}
