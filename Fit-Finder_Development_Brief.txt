@@ -1,0 +1,121 @@
+FIT-FINDER DEVELOPMENT BRIEF
+Based on 1,467 submissions collected April 13-August 24, 2026
+
+
+PURPOSE
+
+Improve the percentage of customers who receive a useful Fit-Finder recommendation, reduce customer confusion and repeat submissions, and give Customer Service enough information to help when the automated tool cannot find a fit.
+
+
+KEY FINDINGS
+
+- 75.3% of all submissions produced at least one recommendation.
+- After removing exact duplicates, 77.8% of unique attempts produced a recommendation.
+- After also removing clearly invalid measurements, the success rate was approximately 81.5%.
+- 375 submissions were exact repeats. Most appear to be duplicate clicks or duplicate form events rather than deliberate new attempts.
+- Nearly half of customer sessions included more than one submission.
+- When the first attempt failed, only 25% of those sessions eventually produced a recommendation.
+- Bobbed or docked-tail dogs had a 38% no-result rate, compared with 19% for straight-tail dogs.
+- Several breeds produced unusually high no-result rates, including Bulldog, Boston Terrier, Great Dane, Chihuahua, Dachshund, Yorkshire Terrier and Papillon.
+- Some users entered measurements in centimeters or entered obviously incorrect values.
+
+
+PRIORITY 1: PREVENT DUPLICATE SUBMISSIONS
+
+Problem
+
+The log contains 375 exact duplicate submissions. In 353 cases, the duplicate shared the same IP address and submission minute. This suggests double-clicking, repeated taps, delayed feedback or duplicate event handling.
+
+Recommended changes
+
+- Disable the Submit button immediately after it is clicked.
+- Display a clear loading or processing message.
+- Assign an idempotency key to each deliberate submission.
+- Prevent multiple click handlers or rapid double-tap requests.
+- Log only one analytics event for each event ID.
+- Allow another submission after the customer changes an input or selects Try Again.
+
+Acceptance criteria
+
+- Twenty rapid clicks or taps create one scoring request and one log entry.
+- Refreshing the page or using the Back button does not silently resubmit the same entry.
+- A network retry returns the original response without creating another submission record.
+
+
+PRIORITY 2: VALIDATE MEASUREMENTS BEFORE SCORING
+
+Problem
+
+The data includes a 177-inch neck, a 230-inch chest and a 2,512-inch back length. Some entries appear to have been made in centimeters. Every submission in which the neck was equal to or larger than the chest failed.
+
+Recommended changes
+
+- Place the unit directly beside every measurement field.
+- Either provide an inches/centimeters selector or make the inches requirement unmistakable.
+- Establish reasonable minimum and maximum values using the actual pattern library.
+- Prevent submission when neck is equal to or larger than chest.
+- Display the validation message beside the affected field.
+- Do not silently convert suspicious measurements without customer confirmation.
+
+Acceptance criteria
+
+- Impossible measurements never reach the scoring engine.
+- A likely centimeter entry produces a unit-specific correction message.
+- Validation errors are visible and usable on mobile and desktop.
+- Each validation failure is logged with a reason code.
+
+
+PRIORITY 3: REPLACE THE BLANK NO-RESULT EXPERIENCE
+
+Problem
+
+Only 25% of sessions that began with no result eventually produced a recommendation. Asking the customer to try again without explaining the problem is generally ineffective.
+
+Recommended changes
+
+- Return a structured reason whenever no recommendation is available.
+- Reason categories should include neck, chest, length, tail rule, invalid measurement and lack of pattern coverage.
+- Tell the customer which measurement or rule prevented a match.
+- Display the appropriate measurement illustration and a focused remeasurement instruction.
+- Preserve all other answers while the customer corrects one field.
+- Offer a clear route to Customer Service when valid measurements still produce no result.
+- Never leave the customer with an empty results area.
+
+Acceptance criteria
+
+- Every no-result response contains at least one reason code and a customer-friendly explanation.
+- A customer can correct one field without restarting the questionnaire.
+- The system tracks whether a no-result customer later finds a recommendation, contacts Customer Service or leaves.
+
+
+PRIORITY 4: IMPROVE DATA COLLECTION
+
+IP address is not a reliable customer identifier. One IP may represent several customers or dogs, while one customer may use several IP addresses.
+
+Recommended fields
+
+- Anonymous session ID
+- Dog or attempt ID
+- Submission event ID
+- Scoring-version number
+- Validation outcome and reason code
+- No-result reason code
+- Device and viewport category
+- Selected unit
+- Result confidence level
+- Product link clicked
+- Internal testing or QA flag
+
+Record field-level changes between attempts so the team can see whether customers are correcting measurements, experimenting with the form or simply creating duplicate events.
+
+
+PRIORITY 5: EXPLAIN CROSS-BREED RECOMMENDATIONS
+
+Only about 26% of successful unique attempts displayed the entered breed as the first recommendation. This does not necessarily mean the result was wrong because the tool searches across shared body patterns. However, customers may interpret a different breed name as an error.
+
+Recommended changes
+
+- Explain that recommendations are based on body proportions, not breed name alone.
+- When the recommended pattern has a different breed name, explain why its measurements are a better match.
+- Clearly define Best Fit, Good Fit and Might Fit.
+- Continue to show appropriate fit caveats and avoid guaranteeing fit.
