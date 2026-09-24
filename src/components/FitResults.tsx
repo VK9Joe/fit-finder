@@ -9,6 +9,7 @@ import { buildShopifyProductUrl } from '@/lib/shopify-url-builder';
 import ShoppingPathCTAs from './ShoppingPathCTAs';
 import { FitLegend, CrossBreedNote } from './FitExplanation';
 import { logEvent } from '@/utils/submissionTracking';
+import { formatBreedName } from '@/data/breedList';
 
 interface FitResultsProps {
   results: {
@@ -415,7 +416,7 @@ export default function FitResults({ results, measurements, onStartOver }: FitRe
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
             <div className="bg-gray-50 p-3 rounded-lg">
               <div className="text-xs font-medium text-gray-500 uppercase mb-1">Breed</div>
-              <div className="text-sm font-bold text-gray-900">{measurements.breed}</div>
+              <div className="text-sm font-bold text-gray-900">{formatBreedName(measurements.breed)}</div>
             </div>
             <div className="bg-gray-50 p-3 rounded-lg">
               <div className="text-xs font-medium text-gray-500 uppercase mb-1">Neck</div>

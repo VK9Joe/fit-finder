@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import { Info } from 'lucide-react';
 import { parsePatternName } from '@/lib/shopify-shopping-links';
 import { getBreedPatternKey } from '@/utils/patternFinder';
+import { formatBreedName } from '@/data/breedList';
 
 /**
  * Copy that explains how matching works (Brief, Priority 5).
@@ -107,6 +108,8 @@ export function CrossBreedNote({
   if (normalise(enteredBreed) === normalise(recommendedBreed)) return null;
 
   const customerFamily = getBreedPatternKey(enteredBreed);
+  // The breed field stores lowercase values ("labrador retriever"); show them as names.
+  const breedName = formatBreedName(enteredBreed.trim());
   const patternFamily = patternCode?.split('-')[0] ?? null;
 
   let message: ReactNode;
@@ -121,7 +124,7 @@ export function CrossBreedNote({
     message = (
       <>
         <span className="font-semibold">Why a {recommendedBreed} pattern?</span>{' '}
-        {plural(enteredBreed)} are fitted from our {recommendedBreed} pattern. The two share a body
+        {plural(breedName)} are fitted from our {recommendedBreed} pattern. The two share a body
         shape, so this is the pattern made for your dog.
       </>
     );
@@ -129,7 +132,7 @@ export function CrossBreedNote({
     message = (
       <>
         <span className="font-semibold">Why a {recommendedBreed} pattern?</span> We do have patterns
-        cut for {plural(enteredBreed)}, and they get a small head start in our ranking. Your dog&apos;s
+        cut for {plural(breedName)}, and they get a small head start in our ranking. Your dog&apos;s
         measurements still fit this one better.
       </>
     );
@@ -137,7 +140,7 @@ export function CrossBreedNote({
     message = (
       <>
         <span className="font-semibold">Why a {recommendedBreed} pattern?</span> We don&apos;t have a
-        pattern cut specifically for {plural(enteredBreed)}, so we compared your dog&apos;s
+        pattern cut specifically for {plural(breedName)}, so we compared your dog&apos;s
         measurements against every pattern we make. This one is among the closest fits.
       </>
     );

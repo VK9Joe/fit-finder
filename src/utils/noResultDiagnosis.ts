@@ -56,6 +56,20 @@ function format(value: number): string {
   return (Math.round(value * 100) / 100).toString();
 }
 
+/**
+ * "a" or "an" for a number as it is read aloud: "an 8", "an 11", "an 18",
+ * "an 80", but "a 12" and "a 47".
+ */
+function articleForNumber(value: number): 'a' | 'an' {
+  const whole = Math.floor(Math.abs(value));
+  return /^8/.test(String(whole)) || whole === 11 || whole === 18 ? 'an' : 'a';
+}
+
+/** "A straight tail" but "An up or curly tail". */
+function articleForWord(word: string): 'A' | 'An' {
+  return /^[aeiou]/i.test(word) ? 'An' : 'A';
+}
+
 export function diagnoseNoResult(
   input: UserInput,
   allPatterns: CoatPattern[]
@@ -83,7 +97,7 @@ export function diagnoseNoResult(
     return {
       code: 'NECK_OUT_OF_RANGE',
       focusField: 'neckCircumference',
-      headline: `We do not have a pattern for a ${format(input.neckCircumference)}" neck.`,
+      headline: `We do not have a pattern for ${articleForNumber(input.neckCircumference)} ${format(input.neckCircumference)}" neck.`,
       detail:
         `Our patterns fit necks from ${format(SERVABLE.neck.min)}" to ${format(SERVABLE.neck.max)}". ` +
         'Measure around the base of the neck where the collar sits, keeping the tape snug but not tight.',
@@ -100,7 +114,7 @@ export function diagnoseNoResult(
     return {
       code: 'CHEST_OUT_OF_RANGE',
       focusField: 'chestCircumference',
-      headline: `No pattern pairs a ${format(input.neckCircumference)}" neck with a ${format(input.chestCircumference)}" chest.`,
+      headline: `No pattern pairs ${articleForNumber(input.neckCircumference)} ${format(input.neckCircumference)}" neck with ${articleForNumber(input.chestCircumference)} ${format(input.chestCircumference)}" chest.`,
       detail:
         'Measure the chest around the widest part of the ribcage, just behind the front legs. ' +
         'If that measurement is right, this combination may need a made-to-measure coat.',
@@ -119,7 +133,7 @@ export function diagnoseNoResult(
           focusField: 'tailType',
           headline: 'The tail type is what is blocking the match.',
           detail:
-            `A ${input.tailType} tail is measured against a different pattern length. These same ` +
+            `${articleForWord(input.tailType)} ${input.tailType} tail is measured against a different pattern length. These same ` +
             `measurements do match if the tail type is "${tailType}" — worth checking which one ` +
             'describes your dog.',
           suggestedTailType: tailType,
