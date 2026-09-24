@@ -64,7 +64,7 @@ export default function NoResultsPanel({
           <div className="flex flex-col md:flex-row gap-6 md:items-center">
             {focusField && (
               <div className="shrink-0 mx-auto md:mx-0">
-                <MeasurementDiagram field={focusField} />
+                <MeasurementDiagram />
               </div>
             )}
 
