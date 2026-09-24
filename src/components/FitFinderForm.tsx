@@ -1,22 +1,44 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { UserInput } from '@/types';
 import { getTailTypes } from '@/utils/patternFinder';
 import { BreedAutocomplete } from '@/components/BreedAutocomplete';
+import {
+  validateMeasurements,
+  toInches,
+  SKIP_LENGTH,
+  ValidationReasonCode,
+} from '@/utils/measurementValidation';
+
+type Unit = 'in' | 'cm';
 
 interface FormErrors {
   [key: string]: string | undefined;
 }
 
 interface FitFinderFormProps {
-  onSubmit: (measurements: UserInput) => void;
+  /** Receives measurements already converted to inches, plus the unit used to enter them. */
+  onSubmit: (measurements: UserInput, meta: { unit: Unit }) => void;
   isLoading?: boolean;
   initialMeasurements?: UserInput | null;
   hasResults?: boolean;
+  /** Reported so every validation failure is logged with a reason code. */
+  onValidationFailure?: (reasonCodes: ValidationReasonCode[]) => void;
+  /** Focuses a field the results area asked the customer to correct. */
+  focusField?: keyof UserInput | null;
 }
 
-export default function FitFinderForm({ onSubmit, isLoading = false, initialMeasurements = null, hasResults = false }: FitFinderFormProps) {
+export default function FitFinderForm({
+  onSubmit,
+  isLoading = false,
+  initialMeasurements = null,
+  hasResults = false,
+  onValidationFailure,
+  focusField = null,
+}: FitFinderFormProps) {
+  // Values are held in whatever unit the customer picked and converted on submit.
+  const [unit, setUnit] = useState<Unit>('in');
   const [measurements, setMeasurements] = useState<Partial<UserInput>>(() => {
     return initialMeasurements || {
       tailType: 'straight',
@@ -30,6 +52,22 @@ export default function FitFinderForm({ onSubmit, isLoading = false, initialMeas
 
   const isLengthSkip = backLengthRaw === '00';
 
+  const unitLabel = unit === 'cm' ? 'cm' : 'inches';
+  const placeholders =
+    unit === 'cm'
+      ? { neck: '32', chest: '48', length: '38' }
+      : { neck: '12.5', chest: '18.75', length: '15' };
+
+  // The no-result panel can point the customer at one field to correct; bring it
+  // into view rather than making them hunt for it.
+  useEffect(() => {
+    if (!focusField) return;
+    const element = document.getElementById(focusField);
+    if (!element) return;
+    element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    (element as HTMLInputElement | HTMLSelectElement).focus({ preventScroll: true });
+  }, [focusField]);
+
   const isFormComplete = () => {
     return measurements.breed &&
            measurements.neckCircumference && measurements.neckCircumference > 0 &&
@@ -37,6 +75,21 @@ export default function FitFinderForm({ onSubmit, isLoading = false, initialMeas
            (isLengthSkip || (measurements.backLength && measurements.backLength > 0)) &&
            (isLengthSkip || measurements.tailType);
   };
+
+  /** The entered values converted to the inches the scoring engine works in. */
+  const toInchesInput = () => ({
+    neckCircumference: measurements.neckCircumference
+      ? toInches(measurements.neckCircumference, unit)
+      : measurements.neckCircumference,
+    chestCircumference: measurements.chestCircumference
+      ? toInches(measurements.chestCircumference, unit)
+      : measurements.chestCircumference,
+    backLength: isLengthSkip
+      ? SKIP_LENGTH
+      : measurements.backLength
+        ? toInches(measurements.backLength, unit)
+        : measurements.backLength,
+  });
 
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {};
@@ -57,17 +110,31 @@ export default function FitFinderForm({ onSubmit, isLoading = false, initialMeas
       newErrors.tailType = "Please select your dog's tail type";
     }
 
+    // Range, unit and neck-vs-chest checks, so impossible measurements never
+    // reach the scoring engine. Reported for logging with their reason codes.
+    const validation = validateMeasurements(toInchesInput());
+    for (const [field, error] of Object.entries(validation.errors)) {
+      if (!newErrors[field]) newErrors[field] = error.message;
+    }
+    if (!validation.ok) {
+      onValidationFailure?.(validation.reasonCodes);
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = () => {
-    if (validateForm()) {
-      const submission = isLengthSkip
-        ? { ...measurements, backLength: 0, tailType: measurements.tailType || 'straight' } as UserInput
-        : measurements as UserInput;
-      onSubmit(submission);
-    }
+    if (!validateForm()) return;
+
+    const inInches = toInchesInput();
+    const submission = {
+      ...measurements,
+      ...inInches,
+      tailType: isLengthSkip ? measurements.tailType || 'straight' : measurements.tailType,
+    } as UserInput;
+
+    onSubmit(submission, { unit });
   };
 
   const updateMeasurement = (field: keyof UserInput, value: string | number | boolean) => {
@@ -127,24 +194,45 @@ export default function FitFinderForm({ onSubmit, isLoading = false, initialMeas
 
             {/* Measurements */}
             <div className="mb-10">
-              <div className="flex items-center justify-between mb-6">
+              <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
                 <h2 className="text-2xl font-bold text-gray-900">Measurements</h2>
-                <span className="text-sm bg-primary/10 text-primary px-3 py-1 rounded-full font-medium">
-                  All in inches
-                </span>
+                {/* A real unit choice, rather than hoping customers read "inches" */}
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-500 font-medium">Measured in</span>
+                  <div className="flex items-center bg-gray-100 rounded-lg p-1 gap-1">
+                    {(['in', 'cm'] as Unit[]).map((u) => (
+                      <button
+                        key={u}
+                        type="button"
+                        onClick={() => {
+                          setUnit(u);
+                          setErrors({});
+                        }}
+                        className={`px-3 py-1.5 rounded-md text-sm font-semibold transition-colors ${
+                          unit === u
+                            ? 'bg-white text-brand-teal shadow-sm'
+                            : 'text-gray-500 hover:text-gray-700'
+                        }`}
+                      >
+                        {u === 'in' ? 'inches' : 'cm'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {/* 1. Neck Circumference */}
                 <div>
-                  <label className="block text-sm font-semibold text-gray-800 mb-3">
-                    Neck Circumference
+                  <label htmlFor="neckCircumference" className="block text-sm font-semibold text-gray-800 mb-3">
+                    Neck Circumference <span className="text-gray-500 font-normal">({unitLabel})</span>
                   </label>
                   <input
+                    id="neckCircumference"
                     type="number"
                     value={measurements.neckCircumference || ''}
                     onChange={(e) => updateMeasurement('neckCircumference', parseFloat(e.target.value) || 0)}
-                    placeholder="12.5"
+                    placeholder={placeholders.neck}
                     className={`w-full h-12 px-4 border rounded-lg text-gray-900 text-base focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors ${
                       errors.neckCircumference ? 'border-red-300' : 'border-gray-300'
                     }`}
@@ -158,14 +246,15 @@ export default function FitFinderForm({ onSubmit, isLoading = false, initialMeas
 
                 {/* 2. Chest Circumference */}
                 <div>
-                  <label className="block text-sm font-semibold text-gray-800 mb-3">
-                    Chest Circumference
+                  <label htmlFor="chestCircumference" className="block text-sm font-semibold text-gray-800 mb-3">
+                    Chest Circumference <span className="text-gray-500 font-normal">({unitLabel})</span>
                   </label>
                   <input
+                    id="chestCircumference"
                     type="number"
                     value={measurements.chestCircumference || ''}
                     onChange={(e) => updateMeasurement('chestCircumference', parseFloat(e.target.value) || 0)}
-                    placeholder="18.75"
+                    placeholder={placeholders.chest}
                     className={`w-full h-12 px-4 border rounded-lg text-gray-900 text-base focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors ${
                       errors.chestCircumference ? 'border-red-300' : 'border-gray-300'
                     }`}
@@ -179,10 +268,11 @@ export default function FitFinderForm({ onSubmit, isLoading = false, initialMeas
 
                 {/* 3. Back Length */}
                 <div>
-                  <label className="block text-sm font-semibold text-gray-800 mb-3">
-                    Back Length
+                  <label htmlFor="backLength" className="block text-sm font-semibold text-gray-800 mb-3">
+                    Back Length <span className="text-gray-500 font-normal">({unitLabel})</span>
                   </label>
                   <input
+                    id="backLength"
                     type="number"
                     value={backLengthRaw}
                     onChange={(e) => {
@@ -194,7 +284,7 @@ export default function FitFinderForm({ onSubmit, isLoading = false, initialMeas
                         setErrors(prev => ({ ...prev, backLength: undefined }));
                       }
                     }}
-                    placeholder="15"
+                    placeholder={placeholders.length}
                     className={`w-full h-12 px-4 border rounded-lg text-gray-900 text-base focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors ${
                       errors.backLength ? 'border-red-300' : 'border-gray-300'
                     }`}
@@ -220,6 +310,7 @@ export default function FitFinderForm({ onSubmit, isLoading = false, initialMeas
                   </label>
                   <div className="relative">
                     <select
+                      id="tailType"
                       value={measurements.tailType || ''}
                       onChange={(e) => updateMeasurement('tailType', e.target.value as UserInput['tailType'])}
                       className={`block w-full h-12 pl-4 pr-10 py-3 border rounded-lg text-gray-900 text-base ${
