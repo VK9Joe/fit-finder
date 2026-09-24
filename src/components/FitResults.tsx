@@ -7,6 +7,8 @@ import { AlertCircle, ShoppingCart, CheckCircle, ExternalLink } from 'lucide-rea
 import Image from 'next/image';
 import { buildShopifyProductUrl } from '@/lib/shopify-url-builder';
 import ShoppingPathCTAs from './ShoppingPathCTAs';
+import { FitLegend, CrossBreedNote } from './FitExplanation';
+import { logEvent } from '@/utils/submissionTracking';
 
 interface FitResultsProps {
   results: {
@@ -18,6 +20,7 @@ interface FitResultsProps {
         price: number;
         category?: string;
         size?: string;
+        patternCode?: string;
         measurements?: { rcLength?: number };
       };
       finalScore: number;
@@ -51,6 +54,7 @@ interface FitResultsProps {
         price: number;
         category?: string;
         size?: string;
+        patternCode?: string;
         measurements?: { rcLength?: number };
       };
       finalScore: number;
@@ -84,6 +88,7 @@ interface FitResultsProps {
         price: number;
         category?: string;
         size?: string;
+        patternCode?: string;
         measurements?: { rcLength?: number };
       };
       finalScore: number;
@@ -129,6 +134,11 @@ export default function FitResults({ results, measurements, onStartOver }: FitRe
       const size = patternName ? patternName.split(' - ')[1] : undefined;
       
       const productUrl = buildShopifyProductUrl(productHandle, variantId, productType, measurements, size);
+      logEvent('product_link_click', {
+        linkType: `product_${productType}`,
+        patternName: patternName ?? '',
+        url: productUrl,
+      });
       // Open in new tab to maintain user's place in the fit finder
       window.open(productUrl, '_blank', 'noopener,noreferrer');
     } catch (error) {
@@ -192,6 +202,7 @@ export default function FitResults({ results, measurements, onStartOver }: FitRe
       price: number;
       category?: string;
       size?: string;
+      patternCode?: string;
       measurements?: { rcLength?: number };
     };
     finalScore: number;
@@ -257,6 +268,14 @@ export default function FitResults({ results, measurements, onStartOver }: FitRe
                   </ul>
                 </div>
               )}
+
+              {/* Why this card may be named after a different breed */}
+              <CrossBreedNote
+                enteredBreed={measurements?.breed}
+                patternName={result.pattern.name}
+                patternBreed={result.pattern.category}
+                patternCode={result.pattern.patternCode}
+              />
             </div>
           </div>
         </div>
@@ -421,6 +440,10 @@ export default function FitResults({ results, measurements, onStartOver }: FitRe
           </div>
         </div>
       )}
+
+      <div className="mt-8">
+        <FitLegend />
+      </div>
 
       {allResults.map((result, globalIndex: number) => 
         renderPatternCard(result, globalIndex)

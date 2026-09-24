@@ -2,6 +2,7 @@
 
 import { ArrowRight, Package, LayoutGrid, RefreshCw } from 'lucide-react';
 import { buildShoppingLinks } from '@/lib/shopify-shopping-links';
+import { logEvent } from '@/utils/submissionTracking';
 
 interface ShoppingPathCTAsProps {
   /** Display name, e.g. "Golden Retriever - Medium". Used only as a fallback. */
@@ -30,6 +31,11 @@ export default function ShoppingPathCTAs({ patternName, breed: breedProp, sizeCo
 
   const { breed, sizeCode, kitBuilder, individualProducts, reCoat } = links;
 
+  // Which shopping path the customer took. Sent as a beacon because these links
+  // navigate the whole storefront page away, which would cancel a normal request.
+  const trackClick = (linkType: string, url: string) => () =>
+    logEvent('product_link_click', { linkType, patternName, breed, sizeCode, url }, { beacon: true });
+
   return (
     <div className="border-t border-gray-200 pt-6 mt-2">
       <div className="flex flex-wrap items-center gap-2 mb-4">
@@ -43,6 +49,7 @@ export default function ShoppingPathCTAs({ patternName, breed: breedProp, sizeCo
       <a
         href={kitBuilder}
         target="_top"
+        onClick={trackClick('kit_builder', kitBuilder)}
         className="group flex items-center justify-between gap-4 w-full bg-brand-teal hover:bg-brand-teal-dark text-white rounded-xl px-5 py-5 md:px-6 md:py-6 shadow-lg hover:shadow-xl transition-all duration-200"
       >
         <span className="flex items-center gap-3 md:gap-4 min-w-0">
@@ -64,6 +71,7 @@ export default function ShoppingPathCTAs({ patternName, breed: breedProp, sizeCo
         <a
           href={individualProducts}
           target="_top"
+          onClick={trackClick('individual_products', individualProducts)}
           className="group flex items-center justify-between gap-3 bg-white border-2 border-brand-teal/40 hover:border-brand-teal hover:bg-brand-teal/5 text-brand-teal rounded-xl px-4 py-4 transition-all duration-200"
         >
           <span className="flex items-center gap-3 min-w-0">
@@ -83,6 +91,7 @@ export default function ShoppingPathCTAs({ patternName, breed: breedProp, sizeCo
         <a
           href={reCoat}
           target="_top"
+          onClick={trackClick('recoat', reCoat)}
           className="group flex items-center justify-between gap-3 bg-white border border-gray-300 hover:border-gray-400 hover:bg-gray-50 text-gray-700 rounded-xl px-4 py-4 transition-all duration-200"
         >
           <span className="flex items-center gap-3 min-w-0">

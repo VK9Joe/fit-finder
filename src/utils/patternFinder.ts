@@ -68,6 +68,15 @@ function getPatternKey(breed: string): string | null {
 }
 
 /**
+ * The pattern family ("BG", "GR") the engine treats as the customer's own breed,
+ * or null if the breed has no patterns. Exported so explanations shown to the
+ * customer use the same rule the scoring does.
+ */
+export function getBreedPatternKey(breed: string): string | null {
+  return getPatternKey(breed);
+}
+
+/**
  * Calculate neck fit score using asymmetric bell curve
  * Exactly as specified in the document with Python implementation
  */
