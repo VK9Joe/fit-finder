@@ -132,8 +132,8 @@ export function CrossBreedNote({
     message = (
       <>
         <span className="font-semibold">Why a {recommendedBreed} pattern?</span> We do have patterns
-        cut for {plural(breedName)}, and they get a small head start in our ranking. Your dog&apos;s
-        measurements still fit this one better.
+        cut for {plural(breedName)}, and they get a small head start in our ranking. This pattern also
+        ranks high for your pup&apos;s proportions.
       </>
     );
   } else {
