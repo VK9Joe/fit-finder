@@ -316,7 +316,9 @@ export const MINIMAL_PRODUCTS_QUERY = /* GraphQL */ `
               currencyCode
             }
           }
-          variants(first: 50) {
+          # 250 is the Storefront API maximum. At 50, products with many colours lost
+          # their later sizes (XL starts past #50 on 88-variant coats) and showed as missing.
+          variants(first: 250) {
             edges {
               node {
                 id
