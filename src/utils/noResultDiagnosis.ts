@@ -35,6 +35,8 @@ export interface NoResultDiagnosis {
   detail: string;
   /** Set when the same measurements would match under a different tail type. */
   suggestedTailType?: UserInput['tailType'];
+  /** The tail type the customer entered, so the panel can offer the others. */
+  currentTailType?: UserInput['tailType'];
   /** Set when skipping back length would produce matches. */
   skipLengthWouldMatch?: boolean;
 }
@@ -117,7 +119,7 @@ export function diagnoseNoResult(
       headline: `No pattern pairs ${articleForNumber(input.neckCircumference)} ${format(input.neckCircumference)}" neck with ${articleForNumber(input.chestCircumference)} ${format(input.chestCircumference)}" chest.`,
       detail:
         'Measure the chest around the widest part of the ribcage, just behind the front legs. ' +
-        'If that measurement is right, this combination may need a made-to-measure coat.',
+        'If both measurements are right, our Customer Service team can help find a fit.',
     };
   }
 
@@ -137,6 +139,7 @@ export function diagnoseNoResult(
             `measurements do match if the tail type is "${tailType}" — worth checking which one ` +
             'describes your dog.',
           suggestedTailType: tailType,
+          currentTailType: input.tailType,
         };
       }
     }
@@ -161,6 +164,26 @@ export function diagnoseNoResult(
     headline: 'These measurements fall between our patterns.',
     detail:
       'Each measurement is within range on its own, but no single pattern covers this combination. ' +
-      'A made-to-measure coat is the reliable option here, and our team can help.',
+      'Our Customer Service team can help find the right option.',
   };
+}
+
+/**
+ * Tail types grouped by the pattern length they are scored against. Bobbed/docked
+ * and up-or-curly share one rule in calculateLengthScore, so offering both would
+ * just repeat the same result.
+ */
+const TAIL_LENGTH_GROUPS: Array<{ value: UserInput['tailType']; members: UserInput['tailType'][]; label: string }> = [
+  { value: 'down/tucked', members: ['down/tucked'], label: 'down/tucked' },
+  { value: 'straight', members: ['straight'], label: 'straight' },
+  { value: 'bobbed/docked', members: ['bobbed/docked', 'up or curly'], label: 'bobbed/docked or up or curly' },
+];
+
+/** The two length groups other than the customer's own, e.g. for the tail-type buttons. */
+export function otherTailOptions(
+  current: UserInput['tailType'] | undefined
+): Array<{ value: UserInput['tailType']; label: string }> {
+  return TAIL_LENGTH_GROUPS.filter((group) => !current || !group.members.includes(current)).map(
+    ({ value, label }) => ({ value, label })
+  );
 }
