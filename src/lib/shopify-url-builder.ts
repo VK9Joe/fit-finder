@@ -1,4 +1,5 @@
 import { ProductType } from '@/types';
+import { getStoreOrigin } from './shopify-shopping-links';
 
 /**
  * Build Shopify product URLs with collections and variants
@@ -13,17 +14,6 @@ const COLLECTION_PATHS: Record<ProductType, string> = {
   'CC': 'cooling-coats'
 };
 
-// Extract store URL from environment variable
-function getStoreUrl(): string {
-  const storeUrl = process.env.NEXT_PUBLIC_SHOPIFY_STORE_URL;
-  if (!storeUrl) {
-    // Fallback to k9apparel.com if env var not set (for development/testing)
-    console.warn('NEXT_PUBLIC_SHOPIFY_STORE_URL is not configured, using k9apparel.com as fallback');
-    return 'k9apparel.com';
-  }
-  // Remove protocol if present
-  return storeUrl.replace(/^https?:\/\//, '');
-}
 
 /**
  * Extract numeric variant ID from Shopify GID
@@ -59,11 +49,10 @@ export function buildShopifyProductUrl(
   },
   size?: string
 ): string {
-  const storeUrl = getStoreUrl();
   const collectionPath = COLLECTION_PATHS[productType];
   const numericVariantId = extractVariantId(variantId);
   
-  let url = `https://${storeUrl}/collections/${collectionPath}/products/${productHandle}?variant=${numericVariantId}`;
+  let url = `${getStoreOrigin()}/collections/${collectionPath}/products/${productHandle}?variant=${numericVariantId}`;
   
   // Add measurements as URL parameters if provided
   if (measurements) {
@@ -94,10 +83,9 @@ export function buildShopifyProductUrl(
  * @returns Collection URL
  */
 export function buildCollectionUrl(productType: ProductType): string {
-  const storeUrl = getStoreUrl();
   const collectionPath = COLLECTION_PATHS[productType];
   
-  return `https://${storeUrl}/collections/${collectionPath}`;
+  return `${getStoreOrigin()}/collections/${collectionPath}`;
 }
 
 /**

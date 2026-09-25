@@ -15,16 +15,19 @@
  * collection, so they are pinned here rather than derived.
  */
 
-/** Storefront origin, with any protocol and trailing slash removed. */
-function getStoreOrigin(): string {
+/**
+ * Storefront origin without a trailing slash. Defaults to https; an explicit
+ * http:// is kept so the full click-through flow can be tested locally.
+ */
+export function getStoreOrigin(): string {
   const configured = process.env.NEXT_PUBLIC_SHOPIFY_STORE_URL;
   if (!configured) {
     console.warn('NEXT_PUBLIC_SHOPIFY_STORE_URL is not configured, using k9apparel.com as fallback');
   }
-  const host = (configured || 'k9apparel.com')
-    .replace(/^https?:\/\//, '')
-    .replace(/\/+$/, '');
-  return `https://${host}`;
+  const value = (configured || 'k9apparel.com').trim();
+  const protocol = value.startsWith('http://') ? 'http' : 'https';
+  const host = value.replace(/^https?:\/\//, '').replace(/\/+$/, '');
+  return `${protocol}://${host}`;
 }
 
 /** "Golden Retriever" -> "golden-retriever" */
@@ -125,10 +128,25 @@ export function parsePatternName(patternName: string): { breed: string; sizeCode
   return { breed, sizeCode };
 }
 
-/** Kit Builder landing page for a breed. */
-export function buildKitBuilderUrl(breed: string): string {
+/**
+ * Kit Builder landing page for a breed, with the size preselected.
+ *
+ * The Kit Builder reads ?size= and selects it when it exactly matches one of its
+ * size options, which are the catalog codes (XS, S, M, L, XL) on every kit page.
+ */
+export function buildKitBuilderUrl(breed: string, sizeCode?: string): string {
   const handle = KIT_HANDLE_OVERRIDES[breed] ?? toHandle(breed);
-  return `${getStoreOrigin()}/pages/${handle}-kits`;
+  const size = sizeCode ? normalizeSizeCode(sizeCode) : null;
+  const query = size ? `?size=${encodeURIComponent(size)}` : '';
+  return `${getStoreOrigin()}/pages/${handle}-kits${query}`;
+}
+
+/**
+ * A collection filtered to this breed and size, used for a product type when
+ * there is no single product to link to.
+ */
+export function buildBreedSizeCollectionUrl(collectionHandle: string, breed: string, sizeCode: string): string {
+  return buildFilteredCollectionUrl(collectionHandle, breed, sizeCode, false);
 }
 
 function buildFilteredCollectionUrl(
@@ -186,7 +204,7 @@ export function buildShoppingLinks(
   return {
     breed,
     sizeCode,
-    kitBuilder: buildKitBuilderUrl(breed),
+    kitBuilder: buildKitBuilderUrl(breed, sizeCode),
     individualProducts: buildIndividualProductsUrl(breed, sizeCode),
     reCoat: buildReCoatUrl(breed, sizeCode),
   };

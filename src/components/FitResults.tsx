@@ -1,14 +1,10 @@
 'use client';
 
-import { PRODUCT_TYPES, ProductType } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { AlertCircle, ShoppingCart, CheckCircle, ExternalLink } from 'lucide-react';
-import Image from 'next/image';
-import { buildShopifyProductUrl } from '@/lib/shopify-url-builder';
+import { AlertCircle, CheckCircle } from 'lucide-react';
 import ShoppingPathCTAs from './ShoppingPathCTAs';
 import { FitLegend, CrossBreedNote } from './FitExplanation';
-import { logEvent } from '@/utils/submissionTracking';
 import { formatBreedName } from '@/data/breedList';
 
 interface FitResultsProps {
@@ -128,30 +124,6 @@ interface FitResultsProps {
 }
 
 export default function FitResults({ results, measurements, onStartOver }: FitResultsProps) {
-  // View product functionality - redirects to Shopify with pre-selected variant and measurements
-  const viewProduct = (productHandle: string, variantId: string, productType: ProductType, patternName?: string) => {
-    try {
-      // Extract size from fitLabel (e.g., "Medium - Good Fit" -> "Medium")
-      const size = patternName ? patternName.split(' - ')[1] : undefined;
-      
-      const productUrl = buildShopifyProductUrl(productHandle, variantId, productType, measurements, size);
-      logEvent('product_link_click', {
-        linkType: `product_${productType}`,
-        patternName: patternName ?? '',
-        url: productUrl,
-      });
-      // Open in new tab to maintain user's place in the fit finder
-      window.open(productUrl, '_blank', 'noopener,noreferrer');
-    } catch (error) {
-      console.error('Failed to build product URL:', error);
-      // Fallback - try to open product page without variant
-      const storeUrl = process.env.NEXT_PUBLIC_SHOPIFY_STORE_URL?.replace(/^https?:\/\//, '') || '';
-      if (storeUrl && productHandle) {
-        window.open(`https://${storeUrl}/products/${productHandle}`, '_blank', 'noopener,noreferrer');
-      }
-    }
-  };
-
   // Check if there are any results at all
   const hasAnyResults = !!(results && (
     (results.bestFit && results.bestFit.length > 0) ||
@@ -167,14 +139,13 @@ export default function FitResults({ results, measurements, onStartOver }: FitRe
         <h2 className="text-2xl font-bold text-gray-900 mb-2">No Patterns Found</h2>
         <div className="max-w-2xl mx-auto mb-8">
           <p className="text-gray-600 text-lg leading-relaxed">
-            We could not find a pattern that fits the measurements you provided. Please double check your measurements, and try choosing a different tail type. If there are no viable patterns, please visit our{' '}
-            <a 
-              href="https://k9apparel.com/collections/made-to-measure" 
-              target="_blank" 
-              rel="noopener noreferrer"
+            We could not find a pattern that fits the measurements you provided. Please double check your measurements, and try choosing a different tail type. If there are still no viable patterns, please{' '}
+            <a
+              href="https://k9apparel.com/pages/contact-us"
+              target="_top"
               className="text-brand-teal hover:text-brand-teal-dark font-semibold underline"
             >
-              Made-to-Measure page
+              contact Customer Service
             </a>.
           </p>
         </div>
@@ -281,116 +252,14 @@ export default function FitResults({ results, measurements, onStartOver }: FitRe
           </div>
         </div>
 
-        {/* Products Section */}
+        {/* Shopping paths for this specific breed + size recommendation */}
         <div className="px-4 py-5 md:p-6">
-          <div className="mb-6">
-            <div className="flex items-center mb-4">
-              <ShoppingCart className="h-5 w-5 mr-2 text-brand-teal" />
-              <h3 className="text-lg font-semibold text-gray-900">Available Products</h3>
-            </div>
-            
-            {/* Products Grid - Enhanced with images and cart functionality */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-              {Object.entries(PRODUCT_TYPES).map(([type, name]) => {
-                const products = result.products?.[type as ProductType] || [];
-                const product = products[0]; // Get first product of each type
-                
-                // Always show product card even if no specific product data is available
-                // This ensures we don't show "Coming Soon" when products are actually available
-                const defaultProduct = {
-                  id: `default-${type}`,
-                  title: `${name}`,
-                  description: `${name} for ${result.pattern.name}`,
-                  price: result.pattern.price || 39.99,
-                  availableForSale: true
-                };
-                
-                const displayProduct = product || defaultProduct;
-
-                // Check if we have actual products for this type
-                const hasProducts = displayProduct && displayProduct.id && !displayProduct.id.startsWith('default-');
-
-                return (
-                  <div key={type} className="bg-white border border-gray-200 rounded-xl overflow-hidden hover:border-brand-teal/30 hover:shadow-lg transition-all duration-300 flex flex-col h-full group">
-                    {/* Product Image */}
-                    <div className="aspect-square w-full bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center relative overflow-hidden">
-                      {hasProducts && displayProduct.featuredImage ? (
-                        <Image
-                          src={displayProduct.featuredImage}
-                          alt={displayProduct.title}
-                          fill
-                          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-                          className="object-cover transition-transform duration-300 group-hover:scale-105"
-                          quality={90}
-                          priority={false}
-                          placeholder="blur"
-                          blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k="
-                        />
-                      ) : (
-                        <div className="flex flex-col items-center justify-center text-gray-400">
-                          <ShoppingCart className="h-8 w-8 mb-2" />
-                          <span className="text-xs font-medium">{name}</span>
-                        </div>
-                      )}
-                    </div>
-                    
-                    {/* Product Info - flex-grow to push button to bottom */}
-                    <div className="p-3 md:p-4 flex flex-col flex-grow">
-                      <div className="text-sm font-semibold text-gray-900 mb-2 overflow-hidden" style={{
-                        display: '-webkit-box',
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: 'vertical'
-                      }} title={displayProduct.title}>
-                        {hasProducts ? displayProduct.title : `${name} - ${result.pattern.name}`}
-                      </div>
-                      
-                      {/* Price */}
-                      <div className="text-lg font-bold text-brand-teal mb-2">
-                        From ${hasProducts ? parseFloat(displayProduct.price).toFixed(2) : (result.pattern.price || 39.99).toFixed(2)} USD
-                      </div>
-
-                      {/* Spacer to push button to bottom */}
-                      <div className="flex-grow"></div>
-
-                      {/* View Product Button - now at bottom */}
-                      {hasProducts ? (
-                        <Button 
-                          size="sm" 
-                          className="w-full text-xs py-2.5 mt-3 bg-brand-teal hover:bg-brand-teal-dark text-white font-medium rounded-lg transition-all duration-200 hover:scale-105 active:scale-95"
-                          onClick={() => viewProduct(displayProduct.handle, displayProduct.variant.id, type as ProductType, result.pattern.name)}
-                          disabled={!displayProduct.availableForSale}
-                        >
-                          {displayProduct.availableForSale ? (
-                            <>
-                              <ExternalLink className="h-3 w-3 mr-1" />
-                              View Product
-                            </>
-                          ) : (
-                            '✗ Out of Stock'
-                          )}
-                        </Button>
-                      ) : (
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          className="w-full text-xs py-2.5 mt-3 border-brand-teal/30 text-brand-teal hover:bg-brand-teal/5 rounded-lg"
-                          disabled
-                        >
-                          Coming Soon
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Shopping paths for this specific breed + size recommendation */}
           <ShoppingPathCTAs
             patternName={result.pattern.name}
             breed={result.pattern.category}
             sizeCode={result.pattern.size}
+            products={result.products}
+            measurements={measurements}
           />
         </div>
       </div>

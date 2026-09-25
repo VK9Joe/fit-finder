@@ -15,6 +15,7 @@
  */
 
 import { normalizeSizeCode } from '@/lib/shopify-shopping-links';
+import { formatBreedName } from '@/data/breedList';
 
 export const VOYAGERS_FIT_KEY = 'voyagersFit';
 export const VOYAGERS_FIT_MESSAGE = 'VOYAGERS_FIT_UPDATED';
@@ -53,7 +54,7 @@ export function buildVoyagersFit(breed: string, patternName: string): VoyagersFi
   if (!pattern || !sizeCode) return null;
 
   return {
-    breed: breed.trim(),
+    breed: formatBreedName(breed.trim()),
     pattern,
     apparelSize: toApparelSize(sizeCode),
   };
@@ -84,4 +85,29 @@ export function saveVoyagersFit(fit: VoyagersFit): void {
       '*'
     );
   }
+}
+
+/**
+ * Save one specific recommendation for the bar, called when a customer clicks a
+ * shopping link on that recommendation's card.
+ *
+ * Results load with the top recommendation saved, so without this a click on
+ * the second or third card would land on the storefront with the first card's
+ * breed and size in the bar.
+ *
+ * Links on the cards navigate the top window, and that navigation starts after
+ * this click handler returns. The parent receives this message well before the
+ * new page commits, so its copy is written first.
+ */
+export function saveFitForRecommendation(
+  customerBreed: string | undefined,
+  patternBreed: string,
+  sizeCode: string
+): void {
+  if (!patternBreed || !sizeCode) return;
+  saveVoyagersFit({
+    breed: formatBreedName((customerBreed || patternBreed).trim()),
+    pattern: patternBreed.trim(),
+    apparelSize: toApparelSize(sizeCode),
+  });
 }
