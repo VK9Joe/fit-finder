@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { ProductType } from '@/utils/patternFinder';
-import { selectBestAvailableColor, createCustomColorPriority } from '@/lib/color-fallback';
+import { selectVariantForProductLink } from '@/lib/color-fallback';
 
 // Helper function to fetch all products efficiently
 async function fetchAllProductsMinimal() {
@@ -21,6 +21,7 @@ async function fetchAllProductsMinimal() {
       id: string;
       sku: string;
       availableForSale: boolean;
+      colorName: string | null;
       price: { amount: string; currencyCode: string };
     }>;
   }> = [];
@@ -57,6 +58,7 @@ async function fetchAllProductsMinimal() {
                   sku: string;
                   availableForSale: boolean;
                   price: { amount: string; currencyCode: string };
+                  selectedOptions?: Array<{ name: string; value: string }>;
                 };
               }>;
             };
@@ -84,6 +86,7 @@ async function fetchAllProductsMinimal() {
         id: vEdge.node.id,
         sku: vEdge.node.sku,
         availableForSale: vEdge.node.availableForSale,
+        colorName: vEdge.node.selectedOptions?.find((o) => /^colou?r$/i.test(o.name))?.value ?? null,
         price: vEdge.node.price
       })) || []
     }));
@@ -149,6 +152,7 @@ export async function GET(request: Request) {
         sku: string;
         price: { amount: string; currencyCode: string };
         availableForSale: boolean;
+        colorName: string | null;
         skuInfo: {
           productType: string;
           patternCode: string;
@@ -158,12 +162,6 @@ export async function GET(request: Request) {
       };
     }>> = {};
     let totalMatches = 0;
-    
-    // Get current season for color preferences (optional enhancement)
-    const currentMonth = new Date().getMonth();
-    const season = currentMonth >= 2 && currentMonth <= 4 ? 'spring' :
-                  currentMonth >= 5 && currentMonth <= 7 ? 'summer' :
-                  currentMonth >= 8 && currentMonth <= 10 ? 'fall' : 'winter';
     
     // Process each product and its variants
     allProducts.forEach(product => {
@@ -191,6 +189,7 @@ export async function GET(request: Request) {
           sku: string;
           price: { amount: string; currencyCode: string };
           availableForSale: boolean;
+          colorName: string | null;
           skuInfo: {
             productType: string;
             patternCode: string;
@@ -200,6 +199,9 @@ export async function GET(request: Request) {
         };
       }>>> = {};
       
+      // This product's variants in the recommended size, per type, in Shopify order.
+      const orderedByType: Record<string, Array<(typeof variantsByType)[string][string][number]>> = {};
+
       product.variants.forEach((variant) => {
         if (!variant.sku) return;
         
@@ -235,6 +237,7 @@ export async function GET(request: Request) {
               sku: variant.sku,
               price: variant.price,
               availableForSale: variant.availableForSale,
+              colorName: variant.colorName,
               skuInfo: {
                 productType: type,
                 patternCode: breed,
@@ -245,6 +248,7 @@ export async function GET(request: Request) {
           };
           
           variantsByType[type][color].push(productVariant);
+          (orderedByType[type] ??= []).push(productVariant);
         }
       });
       
@@ -254,13 +258,10 @@ export async function GET(request: Request) {
           productsByType[type] = [];
         }
         
-        const colorVariants = variantsByType[type];
-        
-        // Create custom color priority based on season and product type
-        const customColorPriority = createCustomColorPriority(season as 'spring' | 'summer' | 'fall' | 'winter', type);
-        
-        // Use the utility function to select the best available color
-        const selectedVariant = selectBestAvailableColor(colorVariants, customColorPriority);
+        // Green if purchasable in this size, else the first purchasable colour in
+        // Shopify's order. Replaces a seasonal colour list that preferred Black and
+        // never matched the store's colour codes.
+        const selectedVariant = selectVariantForProductLink(orderedByType[type] ?? []);
         
         // Add the selected variant to the results
         if (selectedVariant) {
@@ -284,10 +285,7 @@ export async function GET(request: Request) {
         const selectedColors = products.map(p => p.variant.skuInfo.color).join(', ');
         const availableStatus = products.map(p => p.variant.availableForSale ? '✓' : '✗').join(', ');
         // console.log(`${type} selected colors: [${selectedColors}] availability: [${availableStatus}]`);
-        
-        // Log color fallback information
-        const customPriority = createCustomColorPriority(season as 'spring' | 'summer' | 'fall' | 'winter', type);
-        // console.log(`${type} color priority for ${season}: [${customPriority.slice(0, 5).join(', ')}...]`);
+
       }
     });
     
@@ -314,10 +312,9 @@ export async function GET(request: Request) {
           totalProductsSearched: allProducts.length,
           expectedBreed,
           expectedSize,
-          season,
           allProductTypes: Object.keys(productsByType),
           selectedColors: productsByType[productType]?.map(p => ({
-            color: p.variant.skuInfo.color,
+            color: p.variant.colorName ?? p.variant.skuInfo.color,
             available: p.variant.availableForSale,
             sku: p.variant.sku
           })) || []
@@ -335,7 +332,6 @@ export async function GET(request: Request) {
         totalProductsSearched: allProducts.length,
         expectedBreed,
         expectedSize,
-        season,
         productTypesFound: Object.keys(productsByType),
         matchesByType: Object.keys(productsByType).reduce((acc, type) => {
           acc[type] = productsByType[type].length;
@@ -343,7 +339,7 @@ export async function GET(request: Request) {
         }, {} as Record<string, number>),
         selectedColorsByType: Object.keys(productsByType).reduce((acc, type) => {
           acc[type] = productsByType[type].map(p => ({
-            color: p.variant.skuInfo.color,
+            color: p.variant.colorName ?? p.variant.skuInfo.color,
             available: p.variant.availableForSale,
             sku: p.variant.sku
           }));

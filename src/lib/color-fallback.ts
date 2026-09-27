@@ -209,3 +209,38 @@ export function getColorDisplayName(colorCode: string): string {
   
   return colorMap[colorCode] || colorCode;
 }
+
+/**
+ * Pick the variant a Fit Finder product link should open on, from one product's
+ * variants in the recommended size, in Shopify's own variant order.
+ *
+ * The client's rules:
+ *   1. Only variants in the recommended size (the caller has already filtered).
+ *   2. Green, when it can be bought in that size.
+ *   3. Otherwise the first colour that can be bought, in Shopify's order.
+ *   4. "Continue selling" / Stoq variants count as purchasable. The Storefront
+ *      API already reports them as availableForSale.
+ *   5. Never a sold-out colour when another can be bought. The storefront hides
+ *      sold-out swatches (e.g. Final Few), so linking to one lands customers on
+ *      an out-of-stock page.
+ *
+ * Availability must be live: CORE, Premium, Final Few and Stoq availability
+ * change regularly, so nothing here is cached.
+ *
+ * When nothing in the size can be bought, the first variant is returned so the
+ * customer still reaches the product page rather than a dead end.
+ */
+export const PREFERRED_LINK_COLOR = 'green';
+
+export function selectVariantForProductLink<T extends {
+  variant: { availableForSale: boolean; colorName?: string | null };
+}>(variantsInShopifyOrder: T[]): T | null {
+  if (variantsInShopifyOrder.length === 0) return null;
+
+  const purchasable = variantsInShopifyOrder.filter((v) => v.variant.availableForSale);
+  const green = purchasable.find(
+    (v) => (v.variant.colorName || '').trim().toLowerCase() === PREFERRED_LINK_COLOR
+  );
+
+  return green ?? purchasable[0] ?? variantsInShopifyOrder[0];
+}

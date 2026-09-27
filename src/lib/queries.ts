@@ -328,6 +328,12 @@ export const MINIMAL_PRODUCTS_QUERY = /* GraphQL */ `
                   amount
                   currencyCode
                 }
+                # Colour name, for picking which colour a product link opens on.
+                # SKU colour codes are inconsistent, so they are not used for this.
+                selectedOptions {
+                  name
+                  value
+                }
               }
             }
           }
