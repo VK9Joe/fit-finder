@@ -1,9 +1,10 @@
 'use client';
 
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { AlertCircle, CheckCircle } from 'lucide-react';
-import ShoppingPathCTAs from './ShoppingPathCTAs';
+import ShoppingPathCTAs, { KIT_PHOTO_COUNT } from './ShoppingPathCTAs';
 import { FitLegend, CrossBreedNote } from './FitExplanation';
 import { formatBreedName } from '@/data/breedList';
 
@@ -124,6 +125,10 @@ interface FitResultsProps {
 }
 
 export default function FitResults({ results, measurements, onStartOver }: FitResultsProps) {
+  // Kit photos rotate across the recommendations so each card shows a different
+  // one. Starting at a random photo means all of them get used across visits.
+  const [kitPhotoStart] = useState(() => Math.floor(Math.random() * KIT_PHOTO_COUNT));
+
   // Check if there are any results at all
   const hasAnyResults = !!(results && (
     (results.bestFit && results.bestFit.length > 0) ||
@@ -260,6 +265,7 @@ export default function FitResults({ results, measurements, onStartOver }: FitRe
             sizeCode={result.pattern.size}
             products={result.products}
             measurements={measurements}
+            kitPhotoIndex={kitPhotoStart + globalIndex}
           />
         </div>
       </div>
