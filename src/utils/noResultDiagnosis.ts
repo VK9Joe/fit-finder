@@ -151,8 +151,9 @@ export function diagnoseNoResult(
         focusField: 'backLength',
         headline: `The ${format(input.backLength)}" back length is what rules every pattern out.`,
         detail:
-          'Measure from the base of the neck to the base of the tail, with your dog standing. ' +
-          'If that is correct, you can enter 00 for back length and we will match on neck and chest alone.',
+          'Measure from the withers (the base of the neck, just ahead of the shoulder blades) to where ' +
+          'the tail meets the spine, keeping the tape straight along the back. If that is correct, you ' +
+          'can enter 00 for back length and we will match on neck and chest alone.',
         skipLengthWouldMatch: true,
       };
     }

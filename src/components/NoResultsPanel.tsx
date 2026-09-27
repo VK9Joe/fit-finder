@@ -55,6 +55,7 @@ export default function NoResultsPanel({
 
   const isTail = code === 'TAIL_RULE';
   const isNeckOrChest = code === 'CHEST_OUT_OF_RANGE' || code === 'NECK_OUT_OF_RANGE';
+  const isLength = code === 'LENGTH_OUT_OF_RANGE';
 
   // Records that a no-result customer went to Customer Service, so the team can
   // see which reasons end in a support contact. Beacon, because the link leaves the page.
@@ -94,6 +95,16 @@ export default function NoResultsPanel({
                   <p className="text-sm text-gray-700 leading-relaxed mt-1">{advice}</p>
                 </div>
               ))}
+            </div>
+          ) : isLength ? (
+            <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5">
+              <div className="shrink-0">
+                <MeasurementDiagram kind="length" />
+              </div>
+              <div className="text-center sm:text-left">
+                <h3 className="font-bold text-gray-900">Back length</h3>
+                <p className="text-sm text-gray-700 leading-relaxed mt-1">{detail}</p>
+              </div>
             </div>
           ) : isTail ? (
             <ul className="space-y-2 text-gray-700 leading-relaxed">

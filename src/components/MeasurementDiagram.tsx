@@ -5,9 +5,9 @@ import Image from 'next/image';
 /**
  * Measuring illustrations for the no-result panel (Brief, Priority 3).
  *
- * The neck image is the client's "Measure the neck" guide with its baked-in
- * title and side note removed; that copy is shown as real text beside it, where
- * it stays readable at this size. next/image serves small resized versions of
+ * The neck and back-length images are the client's measuring guides with their
+ * baked-in titles and notes removed; that copy is shown as real text beside
+ * them, where it stays readable at this size. next/image serves small resized versions of
  * both rather than the source files.
  */
 const ILLUSTRATIONS = {
@@ -16,6 +16,12 @@ const ILLUSTRATIONS = {
     width: 800,
     height: 729,
     alt: 'Illustration of a dog showing where to measure the neck: low, at the base where it meets the shoulders',
+  },
+  length: {
+    src: '/measure_length.png',
+    width: 900,
+    height: 739,
+    alt: 'Illustration of a dog showing the back length: from the withers, just ahead of the shoulder blades, to where the tail meets the spine',
   },
   chest: {
     src: '/dog_measure.png',
