@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { UserInput } from '@/types';
-import { getTailTypes } from '@/utils/patternFinder';
 import { BreedAutocomplete } from '@/components/BreedAutocomplete';
+import TailTypeSelector from '@/components/TailTypeSelector';
+import MeasurementField, { guideId } from '@/components/MeasurementField';
 import {
   validateMeasurements,
   toInches,
@@ -40,8 +41,8 @@ export default function FitFinderForm({
   // Values are held in whatever unit the customer picked and converted on submit.
   const [unit, setUnit] = useState<Unit>('in');
   const [measurements, setMeasurements] = useState<Partial<UserInput>>(() => {
+    // No tail type is preselected: the customer picks one after seeing where each coat ends.
     return initialMeasurements || {
-      tailType: 'straight',
       chondrodystrophic: false
     };
   });
@@ -65,7 +66,9 @@ export default function FitFinderForm({
     const element = document.getElementById(focusField);
     if (!element) return;
     element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    (element as HTMLInputElement | HTMLSelectElement).focus({ preventScroll: true });
+    // The tail-type question is a group of cards; focus the chosen card's radio.
+    const target = element.querySelector<HTMLInputElement>('input:checked') ?? element;
+    (target as HTMLElement).focus({ preventScroll: true });
   }, [focusField]);
 
   const isFormComplete = () => {
@@ -221,14 +224,16 @@ export default function FitFinderForm({
                 </div>
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Each measurement sits beside a crop of the client's measuring guide for it. */}
+              <div className="divide-y divide-gray-200 *:py-6 *:first:pt-0 *:last:pb-0">
                 {/* 1. Neck Circumference */}
-                <div>
-                  <label htmlFor="neckCircumference" className="block text-sm font-semibold text-gray-800 mb-3">
-                    Neck Circumference <span className="text-gray-500 font-normal">({unitLabel})</span>
-                  </label>
+                <MeasurementField
+                  field="neckCircumference"
+                  label={<>Neck Circumference <span className="text-gray-500 font-normal">({unitLabel})</span></>}
+                >
                   <input
                     id="neckCircumference"
+                    aria-describedby={guideId('neckCircumference')}
                     type="number"
                     value={measurements.neckCircumference || ''}
                     onChange={(e) => updateMeasurement('neckCircumference', parseFloat(e.target.value) || 0)}
@@ -242,15 +247,16 @@ export default function FitFinderForm({
                   {errors.neckCircumference && (
                     <p className="text-red-500 text-sm mt-1">{errors.neckCircumference}</p>
                   )}
-                </div>
+                </MeasurementField>
 
                 {/* 2. Chest Circumference */}
-                <div>
-                  <label htmlFor="chestCircumference" className="block text-sm font-semibold text-gray-800 mb-3">
-                    Chest Circumference <span className="text-gray-500 font-normal">({unitLabel})</span>
-                  </label>
+                <MeasurementField
+                  field="chestCircumference"
+                  label={<>Chest Circumference <span className="text-gray-500 font-normal">({unitLabel})</span></>}
+                >
                   <input
                     id="chestCircumference"
+                    aria-describedby={guideId('chestCircumference')}
                     type="number"
                     value={measurements.chestCircumference || ''}
                     onChange={(e) => updateMeasurement('chestCircumference', parseFloat(e.target.value) || 0)}
@@ -264,15 +270,16 @@ export default function FitFinderForm({
                   {errors.chestCircumference && (
                     <p className="text-red-500 text-sm mt-1">{errors.chestCircumference}</p>
                   )}
-                </div>
+                </MeasurementField>
 
                 {/* 3. Back Length */}
-                <div>
-                  <label htmlFor="backLength" className="block text-sm font-semibold text-gray-800 mb-3">
-                    Back Length <span className="text-gray-500 font-normal">({unitLabel})</span>
-                  </label>
+                <MeasurementField
+                  field="backLength"
+                  label={<>Back Length <span className="text-gray-500 font-normal">({unitLabel})</span></>}
+                >
                   <input
                     id="backLength"
+                    aria-describedby={guideId('backLength')}
                     type="number"
                     value={backLengthRaw}
                     onChange={(e) => {
@@ -294,7 +301,7 @@ export default function FitFinderForm({
                   {errors.backLength && (
                     <p className="text-red-500 text-sm mt-1">{errors.backLength}</p>
                   )}
-                </div>
+                </MeasurementField>
               </div>
             </div>
 
@@ -302,41 +309,16 @@ export default function FitFinderForm({
             <div className="mb-10">
               <h2 className="text-2xl font-bold text-gray-900 mb-6">Physical Characteristics</h2>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Tail Type */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-800 mb-3">
-                    Tail Type
-                  </label>
-                  <div className="relative">
-                    <select
-                      id="tailType"
-                      value={measurements.tailType || ''}
-                      onChange={(e) => updateMeasurement('tailType', e.target.value as UserInput['tailType'])}
-                      className={`block w-full h-12 pl-4 pr-10 py-3 border rounded-lg text-gray-900 text-base ${
-                        errors.tailType ? 'border-red-300' : 'border-gray-300'
-                      } bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors`}
-                    >
-                      <option value="" disabled>Choose tail type</option>
-                      {getTailTypes().map((type) => (
-                        <option key={type} value={type}>
-                          {type.charAt(0).toUpperCase() + type.slice(1)}
-                        </option>
-                      ))}
-                    </select>
-                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
-                      <svg className="h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                        <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-                      </svg>
-                    </div>
-                  </div>
-                  {errors.tailType && (
-                    <p className="text-red-500 text-sm mt-1">{errors.tailType}</p>
-                  )}
-                </div>
+              <div className="space-y-8">
+                {/* Tail Type: four illustrated cards, one per existing tail-type value */}
+                <TailTypeSelector
+                  value={measurements.tailType}
+                  onChange={(value) => updateMeasurement('tailType', value)}
+                  error={errors.tailType}
+                />
 
                 {/* Chondrodystrophic Legs */}
-                <div>
+                <div className="md:w-1/2">
                   <label className="block text-sm font-semibold text-gray-800 mb-3">
                     Leg Type
                   </label>

@@ -7,6 +7,7 @@ import { AlertCircle, CheckCircle } from 'lucide-react';
 import ShoppingPathCTAs, { KIT_PHOTO_COUNT } from './ShoppingPathCTAs';
 import { FitLegend, CrossBreedNote } from './FitExplanation';
 import { formatBreedName } from '@/data/breedList';
+import { tailTypeLabel } from '@/data/tailTypeOptions';
 
 interface FitResultsProps {
   results: {
@@ -307,7 +308,7 @@ export default function FitResults({ results, measurements, onStartOver }: FitRe
             </div>
             <div className="bg-gray-50 p-3 rounded-lg">
               <div className="text-xs font-medium text-gray-500 uppercase mb-1">Tail Type</div>
-              <div className="text-sm font-bold text-gray-900 capitalize">{measurements.tailType}</div>
+              <div className="text-sm font-bold text-gray-900">{tailTypeLabel(measurements.tailType)}</div>
             </div>
             <div className="bg-gray-50 p-3 rounded-lg">
               <div className="text-xs font-medium text-gray-500 uppercase mb-1">Leg Type</div>
