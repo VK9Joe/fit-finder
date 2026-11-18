@@ -318,7 +318,7 @@ export default function FitFinderForm({
                 />
 
                 {/* Chondrodystrophic Legs */}
-                <div className="md:w-1/2">
+                <div>
                   <label className="block text-sm font-semibold text-gray-800 mb-3">
                     Leg Type
                   </label>
